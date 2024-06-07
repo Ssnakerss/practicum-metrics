@@ -67,6 +67,7 @@ func initializeMetrics() {
 	metricsAllowed["StackSys"] = true
 	metricsAllowed["Sys"] = true
 	metricsAllowed["TotalAlloc"] = true
+	metricsAllowed["testCounter"] = true
 }
 
 func main() {
