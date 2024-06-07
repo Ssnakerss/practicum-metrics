@@ -73,10 +73,11 @@ func initializeMetrics() {
 }
 
 func main() {
-	//Initialize used methods
+	//Initialize
 	methods = make(map[string]procF)
 	methods["gauge"] = newMetricDataProcessing
 	methods["counter"] = newMetricDataProcessing
+	initializeMetrics()
 
 	// vals := make([]float64)
 	storage = MemStorage{make(map[string]metricsValues), newMetricDataProcessing}
@@ -113,6 +114,19 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 		} else if !metricsAllowed[params[3]] {
 			w.WriteHeader(http.StatusBadRequest)
+
+			//Diagnostics!!
+
+			// w.WriteHeader(http.StatusOK)
+			// b := metricsAllowed[params[3]]
+
+			// body := ""
+			// body += fmt.Sprintf("Metrics check == %t\r\n", b)
+			// body += fmt.Sprintf("Metric == %s\r\n", params[3])
+			// body += fmt.Sprintf("Metrics list == %v\r\n", metricsAllowed)
+			// w.Write([]byte(body))
+			//-----------
+
 		} else {
 			//Processing metrics values
 			val, err := strconv.ParseFloat(params[4], 64)
