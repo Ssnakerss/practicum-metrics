@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -62,13 +61,13 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	if r.Method != http.MethodPost {
 		//diagnostic
-		body := ""
-		body += fmt.Sprintf("MemStorage == %v\r\n", storage)
-		body += fmt.Sprintf("MemStorage == %#v\r\n", storage)
-		w.Write([]byte(body))
+		// body := ""
+		// body += fmt.Sprintf("MemStorage == %v\r\n", storage)
+		// body += fmt.Sprintf("MemStorage == %#v\r\n", storage)
+		// w.Write([]byte(body))
 		//-----------
 
-		// w.WriteHeader(http.StatusMethodNotAllowed)
+		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 	params := strings.Split(r.URL.Path, "/")
