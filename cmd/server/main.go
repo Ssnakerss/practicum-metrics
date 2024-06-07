@@ -67,8 +67,8 @@ func initializeMetrics() {
 	metricsAllowed["StackSys"] = true
 	metricsAllowed["Sys"] = true
 	metricsAllowed["TotalAlloc"] = true
-	// metricsAllowed["testCounter"] = true
-	// metricsAllowed["testGauge"] = true
+	metricsAllowed["testCounter"] = true
+	metricsAllowed["testGauge"] = true
 
 }
 
@@ -79,7 +79,6 @@ func main() {
 	methods["counter"] = newMetricDataProcessing
 	initializeMetrics()
 	storage = MemStorage{make(map[string]metricsValues), newMetricDataProcessing}
-
 	mux := http.NewServeMux()
 	//diagnistics
 	//mux.HandleFunc(`/`, updateHandler)
