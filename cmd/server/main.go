@@ -114,12 +114,9 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 		} else if !metricsAllowed[params[3]] {
 			w.WriteHeader(http.StatusBadRequest)
-
 			//Diagnostics!!
-
 			// w.WriteHeader(http.StatusOK)
 			// b := metricsAllowed[params[3]]
-
 			// body := ""
 			// body += fmt.Sprintf("Metrics check == %t\r\n", b)
 			// body += fmt.Sprintf("Metric == %s\r\n", params[3])
