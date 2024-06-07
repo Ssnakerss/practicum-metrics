@@ -1,8 +1,5 @@
 package main
 
-<<<<<<< Updated upstream
-func main() {}
-=======
 import (
 	"fmt"
 	"net/http"
@@ -62,6 +59,7 @@ func main() {
 }
 
 func updateHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
 	if r.Method != http.MethodPost {
 		//diagnostic
 		body := ""
@@ -117,4 +115,3 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 // 		return
 // 	}
 // }
->>>>>>> Stashed changes
