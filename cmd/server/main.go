@@ -17,6 +17,7 @@ type MemStorage struct {
 
 var methods map[string]procF
 var storage MemStorage
+var metricsAllowed map[string]bool
 
 func newMetricDataProcessing(metricType string, metricName string, value float64, mem MemStorage) bool {
 	switch metricType {
@@ -35,6 +36,37 @@ func newMetricDataProcessing(metricType string, metricName string, value float64
 	default:
 		return false
 	}
+}
+
+func initializeMetrics() {
+	metricsAllowed = make(map[string]bool)
+	metricsAllowed["Frees"] = true
+	metricsAllowed["Alloc"] = true
+	metricsAllowed["BuckHashSys"] = true
+	metricsAllowed["GCCPUFraction"] = true
+	metricsAllowed["GCSys"] = true
+	metricsAllowed["HeapAlloc"] = true
+	metricsAllowed["HeapIdle"] = true
+	metricsAllowed["HeapInuse"] = true
+	metricsAllowed["HeapObjects"] = true
+	metricsAllowed["HeapReleased"] = true
+	metricsAllowed["HeapSys"] = true
+	metricsAllowed["LastGC"] = true
+	metricsAllowed["Lookups"] = true
+	metricsAllowed["MCacheInuse"] = true
+	metricsAllowed["MCacheSys"] = true
+	metricsAllowed["MSpanInuse"] = true
+	metricsAllowed["MSpanSys"] = true
+	metricsAllowed["Mallocs"] = true
+	metricsAllowed["NextGC"] = true
+	metricsAllowed["NumForcedGC"] = true
+	metricsAllowed["NumGC"] = true
+	metricsAllowed["OtherSys"] = true
+	metricsAllowed["PauseTotalNs"] = true
+	metricsAllowed["StackInuse"] = true
+	metricsAllowed["StackSys"] = true
+	metricsAllowed["Sys"] = true
+	metricsAllowed["TotalAlloc"] = true
 }
 
 func main() {
@@ -74,7 +106,9 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 	if len(params) != 5 {
 		w.WriteHeader(http.StatusNotFound)
 	} else {
-		if p := methods[params[2]]; p == nil {
+		if methods[params[2]] == nil {
+			w.WriteHeader(http.StatusBadRequest)
+		} else if !metricsAllowed[params[3]] {
 			w.WriteHeader(http.StatusBadRequest)
 		} else {
 			//Processing metrics values
