@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -75,7 +74,7 @@ func initializeMetrics() {
 }
 
 func main() {
-	fmt.Println("Server started ... ")
+	//fmt.Println("Server started ... ")
 	//Initialize
 	methods = make(map[string]procF)
 	methods["gauge"] = newMetricDataProcessing

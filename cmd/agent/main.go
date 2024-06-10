@@ -93,9 +93,9 @@ func sendMetric(m metric) error {
 		return err
 	} else {
 		//fmt.Printf("Status Code: %d\r\n", response.StatusCode)
+		resp.Body.Close()
 		return nil
 	}
-	defer resp.Body.Close()
 }
 
 func main() {
