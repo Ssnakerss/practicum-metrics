@@ -67,14 +67,13 @@ func initializeMetrics() {
 	metricsAllowed["StackSys"] = true
 	metricsAllowed["Sys"] = true
 	metricsAllowed["TotalAlloc"] = true
-	metricsAllowed["testCounter"] = false
+	metricsAllowed["testCounter"] = true
 	metricsAllowed["testGauge"] = true
 	metricsAllowed["PollCount"] = true
 	metricsAllowed["RandomValue"] = true
 }
 
 func main() {
-	//fmt.Println("Server started ... ")
 	//Initialize
 	methods = make(map[string]procF)
 	methods["gauge"] = newMetricDataProcessing
@@ -83,9 +82,6 @@ func main() {
 	storage = MemStorage{make(map[string]metricsValues), newMetricDataProcessing}
 
 	mux := http.NewServeMux()
-	//diagnistics
-	//mux.HandleFunc(`/`, updateHandler)
-	//-----------
 	mux.HandleFunc(`/update/`, updateHandler)
 	err := http.ListenAndServe(`:8080`, mux)
 	if err != nil {
