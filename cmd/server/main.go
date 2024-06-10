@@ -72,7 +72,6 @@ func initializeMetrics() {
 	metricsAllowed["testGauge"] = true
 	metricsAllowed["PollCount"] = true
 	metricsAllowed["RandomValue"] = true
-
 }
 
 func main() {
@@ -98,14 +97,6 @@ func main() {
 func updateHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	if r.Method != http.MethodPost {
-		//diagnostic
-		// body := ""
-		// body += fmt.Sprintf("MemStorage == %v\r\n", storage)
-		// w.WriteHeader(http.StatusOK)
-		// w.Write([]byte(body))
-		// return
-		//-----------
-
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
@@ -117,16 +108,6 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
 		} else if !metricsAllowed[params[3]] {
 			w.WriteHeader(http.StatusBadRequest)
-			//Diagnostics!!
-			// w.WriteHeader(http.StatusOK)
-			// b := metricsAllowed[params[3]]
-			// body := ""
-			// body += fmt.Sprintf("Metrics check == %t\r\n", b)
-			// body += fmt.Sprintf("Metric == %s\r\n", params[3])
-			// body += fmt.Sprintf("Metrics list == %v\r\n", metricsAllowed)
-			// w.Write([]byte(body))
-			//-----------
-
 		} else {
 			//Processing metrics values
 			val, err := strconv.ParseFloat(params[4], 64)
@@ -138,15 +119,4 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 		}
 	}
-	//Diagnostics
-	// body := ""
-	// for idx, p := range params {
-	// 	body += fmt.Sprintf("param %d - %s\r\n", idx, p)
-	// }
-	// body += fmt.Sprintf("Method == %s\r\n", r.Method)
-	// body += fmt.Sprintf("MemStorage == %v\r\n", storage)
-	// body += fmt.Sprintf("MemStorage == %#v\r\n", storage)
-
-	// w.Write([]byte(body))
-
 }
