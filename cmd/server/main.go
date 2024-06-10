@@ -84,7 +84,7 @@ func main() {
 
 	mux := http.NewServeMux()
 	//diagnistics
-	mux.HandleFunc(`/`, updateHandler)
+	//mux.HandleFunc(`/`, updateHandler)
 	//-----------
 	mux.HandleFunc(`/update/`, updateHandler)
 	err := http.ListenAndServe(`:8080`, mux)
