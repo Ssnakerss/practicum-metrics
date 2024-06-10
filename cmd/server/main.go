@@ -1,12 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 )
 
-type procF func(metricType string, metricName string, value float64, mem MemStorage) bool
+type procF func(metricType string, metricName string, value float64, mem *MemStorage) bool
 
 type metricsValues []float64
 
@@ -19,7 +20,7 @@ var methods map[string]procF
 var storage MemStorage
 var metricsAllowed map[string]bool
 
-func newMetricDataProcessing(metricType string, metricName string, value float64, mem MemStorage) bool {
+func newMetricDataProcessing(metricType string, metricName string, value float64, mem *MemStorage) bool {
 	switch metricType {
 	case "gauge":
 		if mem.metrics[metricName] == nil {
@@ -69,19 +70,23 @@ func initializeMetrics() {
 	metricsAllowed["TotalAlloc"] = true
 	metricsAllowed["testCounter"] = true
 	metricsAllowed["testGauge"] = true
+	metricsAllowed["PollCount"] = true
+	metricsAllowed["RandomValue"] = true
 
 }
 
 func main() {
+	fmt.Println("Server started ... ")
 	//Initialize
 	methods = make(map[string]procF)
 	methods["gauge"] = newMetricDataProcessing
 	methods["counter"] = newMetricDataProcessing
 	initializeMetrics()
 	storage = MemStorage{make(map[string]metricsValues), newMetricDataProcessing}
+
 	mux := http.NewServeMux()
 	//diagnistics
-	//mux.HandleFunc(`/`, updateHandler)
+	mux.HandleFunc(`/`, updateHandler)
 	//-----------
 	mux.HandleFunc(`/update/`, updateHandler)
 	err := http.ListenAndServe(`:8080`, mux)
@@ -96,8 +101,9 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 		//diagnostic
 		// body := ""
 		// body += fmt.Sprintf("MemStorage == %v\r\n", storage)
-		// body += fmt.Sprintf("MemStorage == %#v\r\n", storage)
+		// w.WriteHeader(http.StatusOK)
 		// w.Write([]byte(body))
+		// return
 		//-----------
 
 		w.WriteHeader(http.StatusMethodNotAllowed)
@@ -128,7 +134,7 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			storage.addItem(params[2], params[3], val, storage)
+			storage.addItem(params[2], params[3], val, &storage)
 			w.WriteHeader(http.StatusOK)
 		}
 	}
@@ -144,18 +150,3 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 	// w.Write([]byte(body))
 
 }
-
-// type Middleware func(http.Handler) http.Handler
-// func Conveyor(h http.Handler, middlewares ...Middleware) http.Handler {
-// 	for _, middleware := range middlewares {
-// 		h = middleware(h)
-// 	}
-// 	return h
-// }
-
-// func checkMethod(w http.ResponseWriter, r *http.Request) {
-// 	if r.Method != http.MethodPost {
-// 		w.WriteHeader(http.StatusMethodNotAllowed)
-// 		return
-// 	}
-// }
