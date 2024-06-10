@@ -87,8 +87,7 @@ func sendMetric(m metric) error {
 	url := serverAddr + "update/" + m.metricType + "/" + m.metricName + "/" + strconv.FormatFloat(m.metricValue, 'f', -1, 64)
 	data := []byte(``)
 	r := bytes.NewReader(data)
-	//response, err := http.Post(url, contentType, r)
-	_, err := http.Post(url, contentType, r)
+	resp, err := http.Post(url, contentType, r)
 	if err != nil {
 		fmt.Println(err)
 		return err
@@ -96,6 +95,7 @@ func sendMetric(m metric) error {
 		//fmt.Printf("Status Code: %d\r\n", response.StatusCode)
 		return nil
 	}
+	defer resp.Body.Close()
 }
 
 func main() {
