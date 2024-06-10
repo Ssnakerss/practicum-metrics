@@ -67,7 +67,7 @@ func initializeMetrics() {
 	metricsAllowed["StackSys"] = true
 	metricsAllowed["Sys"] = true
 	metricsAllowed["TotalAlloc"] = true
-	metricsAllowed["testCounter"] = true
+	metricsAllowed["testCounter"] = false
 	metricsAllowed["testGauge"] = true
 	metricsAllowed["PollCount"] = true
 	metricsAllowed["RandomValue"] = true
