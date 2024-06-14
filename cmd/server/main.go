@@ -6,20 +6,13 @@ import (
 	"strings"
 )
 
-type procF func(metricType string, metricName string, value float64, mem *MemStorage) bool
-
 type metricsValues []float64
 
 type MemStorage struct {
 	metrics map[string]metricsValues
-	addItem procF
 }
 
-var methods map[string]procF
-var storage MemStorage
-var metricsAllowed map[string]bool
-
-func newMetricDataProcessing(metricType string, metricName string, value float64, mem *MemStorage) bool {
+func (mem MemStorage) addItem(metricType string, metricName string, value float64) bool {
 	switch metricType {
 	case "gauge":
 		if mem.metrics[metricName] == nil {
@@ -37,6 +30,9 @@ func newMetricDataProcessing(metricType string, metricName string, value float64
 		return false
 	}
 }
+
+var storage MemStorage
+var metricsAllowed map[string]bool
 
 func initializeMetrics() {
 	metricsAllowed = make(map[string]bool)
@@ -75,11 +71,8 @@ func initializeMetrics() {
 
 func main() {
 	//Initialize
-	methods = make(map[string]procF)
-	methods["gauge"] = newMetricDataProcessing
-	methods["counter"] = newMetricDataProcessing
 	initializeMetrics()
-	storage = MemStorage{make(map[string]metricsValues), newMetricDataProcessing}
+	storage = MemStorage{make(map[string]metricsValues)}
 
 	mux := http.NewServeMux()
 	mux.HandleFunc(`/update/`, updateHandler)
@@ -99,7 +92,7 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 	if len(params) != 5 {
 		w.WriteHeader(http.StatusNotFound)
 	} else {
-		if methods[params[2]] == nil {
+		if params[2] != "gauge" && params[2] != "counter" {
 			w.WriteHeader(http.StatusBadRequest)
 		} else if !metricsAllowed[params[3]] {
 			w.WriteHeader(http.StatusBadRequest)
@@ -110,7 +103,7 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			storage.addItem(params[2], params[3], val, &storage)
+			storage.addItem(params[2], params[3], val)
 			w.WriteHeader(http.StatusOK)
 		}
 	}

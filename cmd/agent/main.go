@@ -18,10 +18,9 @@ const (
 )
 
 type metric struct {
-	metricName      string
-	metricType      string //counter || gauge
-	metricValueType string //uint float64
-	metricValue     float64
+	metricName  string
+	metricType  string //counter || gauge
+	metricValue float64
 }
 
 func pollMetrics(mm *[]metric) {
@@ -58,23 +57,19 @@ func pollMetrics(mm *[]metric) {
 		fields.Sys,
 		fields.TotalAlloc,
 	} {
-
-		switch (*mm)[idx].metricValueType {
-		case "uint64":
+		switch d.(type) {
+		case uint64:
 			(*mm)[idx].metricValue = float64(d.(uint64))
-			// fmt.Printf("Index: %d >> value: %#v > %f> Name: %s\r\n", idx, d, float64(d.(uint64)), (*mm)[idx].metricName)
-		case "uint32":
+		case uint32:
 			(*mm)[idx].metricValue = float64(d.(uint32))
-			// fmt.Printf("Index: %d >> value: %#v > %f> Name: %s\r\n", idx, d, float64(d.(uint32)), (*mm)[idx].metricName)
-		case "float64":
+		case float64:
 			(*mm)[idx].metricValue = d.(float64)
-			// fmt.Printf("Index: %d >> value: %#v > %f> Name: %s\r\n", idx, d, d.(float64), (*mm)[idx].metricName)
 		}
-		//
 	}
 	(*mm)[27].metricValue += 1
 	(*mm)[28].metricValue = rand.Float64()
 }
+
 func reportMetrics(mm *[]metric) {
 	for _, m := range *mm {
 		err := sendMetric(m)
@@ -83,53 +78,54 @@ func reportMetrics(mm *[]metric) {
 		}
 	}
 }
+
 func sendMetric(m metric) error {
 	url := serverAddr + "update/" + m.metricType + "/" + m.metricName + "/" + strconv.FormatFloat(m.metricValue, 'f', -1, 64)
-	data := []byte(``)
-	r := bytes.NewReader(data)
-	resp, err := http.Post(url, contentType, r)
+
+	resp, err := http.Post(url, contentType, bytes.NewReader([]byte(``)))
+
 	if err != nil {
 		fmt.Println(err)
 		return err
-	} else {
-		//fmt.Printf("Status Code: %d\r\n", response.StatusCode)
-		resp.Body.Close()
-		return nil
 	}
+
+	//fmt.Printf("Status Code: %d\r\n", response.StatusCode)
+	resp.Body.Close()
+	return nil
 }
 
 func main() {
 	fmt.Println("Agent started ... ")
 	metricsToGather := []metric{
-		{"Alloc", "gauge", "uint64", 0.0},
-		{"BuckHashSys", "gauge", "uint64", 0.0},
-		{"Frees", "gauge", "uint64", 0.0},
-		{"GCCPUFraction", "gauge", "float64", 0.0},
-		{"GCSys", "gauge", "uint64", 0.0},
-		{"HeapAlloc", "gauge", "uint64", 0.0},
-		{"HeapIdle", "gauge", "uint64", 0.0},
-		{"HeapInuse", "gauge", "uint64", 0.0},
-		{"HeapObjects", "gauge", "uint64", 0.0},
-		{"HeapReleased", "gauge", "uint64", 0.0},
-		{"HeapSys", "gauge", "uint64", 0.0},
-		{"LastGC", "gauge", "uint64", 0.0},
-		{"Lookups", "gauge", "uint64", 0.0},
-		{"MCacheInuse", "gauge", "uint64", 0.0},
-		{"MCacheSys", "gauge", "uint64", 0.0},
-		{"MSpanInuse", "gauge", "uint64", 0.0},
-		{"MSpanSys", "gauge", "uint64", 0.0},
-		{"Mallocs", "gauge", "uint64", 0.0},
-		{"NextGC", "gauge", "uint64", 0.0},
-		{"NumForcedGC", "gauge", "uint32", 0.0},
-		{"NumGC", "gauge", "uint32", 0.0},
-		{"OtherSys", "gauge", "uint64", 0.0},
-		{"PauseTotalNs", "gauge", "uint64", 0.0},
-		{"StackInuse", "gauge", "uint64", 0.0},
-		{"StackSys", "gauge", "uint64", 0.0},
-		{"Sys", "gauge", "uint64", 0.0},
-		{"TotalAlloc", "gauge", "uint64", 0.0},
-		{"PollCount", "counter", "uint64", 0},   //27
-		{"RandomValue", "gauge", "uint64", 0.0}, //28
+		{"Alloc", "gauge", 0.0},
+		{"BuckHashSys", "gauge", 0.0},
+		{"Frees", "gauge", 0.0},
+		{"GCCPUFraction", "gauge", 0.0},
+		{"GCSys", "gauge", 0.0},
+		{"HeapAlloc", "gauge", 0.0},
+		{"HeapIdle", "gauge", 0.0},
+		{"HeapInuse", "gauge", 0.0},
+		{"HeapObjects", "gauge", 0.0},
+		{"HeapReleased", "gauge", 0.0},
+		{"HeapSys", "gauge", 0.0},
+		{"LastGC", "gauge", 0.0},
+		{"Lookups", "gauge", 0.0},
+		{"MCacheInuse", "gauge", 0.0},
+		{"MCacheSys", "gauge", 0.0},
+		{"MSpanInuse", "gauge", 0.0},
+		{"MSpanSys", "gauge", 0.0},
+		{"Mallocs", "gauge", 0.0},
+		{"NextGC", "gauge", 0.0},
+		{"NumForcedGC", "gauge", 0.0},
+		{"NumGC", "gauge", 0.0},
+		{"OtherSys", "gauge", 0.0},
+		{"PauseTotalNs", "gauge", 0.0},
+		{"StackInuse", "gauge", 0.0},
+		{"StackSys", "gauge", 0.0},
+		{"Sys", "gauge", 0.0},
+		{"TotalAlloc", "gauge", 0.0},
+		{"PollCount", "counter", 0},   //27
+		{"RandomValue", "gauge", 0.0}, //28
 	}
 	//
 	// var memoryStat runtime.MemStats
