@@ -65,7 +65,7 @@ func pollMetrics(mm *[]metric) (bool, error) {
 		case float64:
 			(*mm)[idx].metricValue = d.(float64)
 		default:
-			return false, fmt.Errorf("Unexpected type %v", v)
+			return false, fmt.Errorf("unexpected type %v", v)
 		}
 	}
 	(*mm)[27].metricValue += 1
