@@ -23,7 +23,7 @@ type metric struct {
 	metricValue float64
 }
 
-func pollMetrics(mm *[]metric) {
+func pollMetrics(mm *[]metric) (bool, error) {
 	var memoryStat runtime.MemStats
 	runtime.ReadMemStats(&memoryStat)
 
@@ -57,17 +57,20 @@ func pollMetrics(mm *[]metric) {
 		fields.Sys,
 		fields.TotalAlloc,
 	} {
-		switch d.(type) {
+		switch v := d.(type) {
 		case uint64:
 			(*mm)[idx].metricValue = float64(d.(uint64))
 		case uint32:
 			(*mm)[idx].metricValue = float64(d.(uint32))
 		case float64:
 			(*mm)[idx].metricValue = d.(float64)
+		default:
+			return false, fmt.Errorf("Unexpected type %v", v)
 		}
 	}
 	(*mm)[27].metricValue += 1
 	(*mm)[28].metricValue = rand.Float64()
+	return true, nil
 }
 
 func reportMetrics(mm *[]metric) {
@@ -147,7 +150,10 @@ func main() {
 			reportMetrics(&metricsToGather)
 			cnt = 0
 		}
-		pollMetrics(&metricsToGather)
+		_, err := pollMetrics(&metricsToGather)
+		if err != nil {
+			panic(err)
+		}
 		time.Sleep(pollInterval * time.Second)
 		cnt += pollInterval
 	}
