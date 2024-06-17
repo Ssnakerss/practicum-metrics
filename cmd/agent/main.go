@@ -77,7 +77,7 @@ func reportMetrics(mm *[]metric) {
 	for _, m := range *mm {
 		err := sendMetric(m)
 		if err != nil {
-			fmt.Printf("Error happened while sending %v: %s \r\n", m, err)
+			fmt.Printf("error happened while sending %v: %s \r\n", m, err)
 		}
 	}
 }
