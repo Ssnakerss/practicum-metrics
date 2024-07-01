@@ -84,9 +84,7 @@ func reportMetrics(mm *[]metric) {
 
 func sendMetric(m metric) error {
 	url := serverAddr + "update/" + m.metricType + "/" + m.metricName + "/" + strconv.FormatFloat(m.metricValue, 'f', -1, 64)
-
 	resp, err := http.Post(url, contentType, bytes.NewReader([]byte(``)))
-
 	if err != nil {
 		fmt.Println(err)
 		return err
