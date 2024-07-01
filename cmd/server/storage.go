@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"lib/metric"
 )
 
@@ -12,12 +13,22 @@ func (st *Storage) New() {
 	st.metrics = make(map[string][]metric.Metric)
 }
 
-func (st *Storage) Insert(m metric.Metric) error {
+func (st *Storage) Insert(m metric.Metric) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%v", r)
+		}
+	}()
 	st.metrics[m.Name] = append(st.metrics[m.Name], m)
 	return nil
 }
 
-func (st *Storage) Update(m metric.Metric) error {
+func (st *Storage) Update(m metric.Metric) (err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("%v", r)
+		}
+	}()
 	if len(st.metrics[m.Name]) == 0 {
 		st.metrics[m.Name] = append(st.metrics[m.Name], m)
 	} else {

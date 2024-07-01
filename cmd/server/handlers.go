@@ -23,32 +23,30 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 	} else {
 		//Checking metric type and name
-		if !m.IsValid(params[3], params[2]) {
-			w.WriteHeader(http.StatusBadRequest)
-		} else {
-			m.Set(params[3], params[4], "float64", params[2])
+		if ok, _ := m.Set(params[3], params[4], "float64", params[2]); ok {
 			//Processing metrics values
 			switch m.MType {
 			case "gauge":
-				Stor.Update(m)
+				err := Stor.Update(m)
+				if err != nil {
+					panic("UPDATE ERROR")
+				}
 			case "counter":
-				Stor.Insert(m)
+				err := Stor.Insert(m)
+				if err != nil {
+					panic("INSERT ERROR")
+				}
 			}
-
 			w.WriteHeader(http.StatusOK)
+		} else {
+			w.WriteHeader(http.StatusBadRequest)
 		}
+
 	}
 }
 
 func mainPage(res http.ResponseWriter, req *http.Request) {
-	body := fmt.Sprintf("Method: %s\r\n", req.Method)
-	body += "Header ===============\r\n"
-	for k, v := range req.Header {
-		body += fmt.Sprintf("%s: %v\r\n", k, v)
-	}
-	body += "Query parameters ===============\r\n"
-	for k, v := range req.URL.Query() {
-		body += fmt.Sprintf("%s: %v\r\n", k, v)
-	}
+	body := fmt.Sprintf("Storage: \r\n %v", Stor)
+
 	res.Write([]byte(body))
 }

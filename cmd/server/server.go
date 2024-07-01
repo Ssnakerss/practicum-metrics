@@ -1,12 +1,14 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 )
 
 var Stor Storage
 
 func main() {
+	fmt.Println("server started ...")
 	Stor.New()
 	mux := http.NewServeMux()
 	mux.HandleFunc(`/update/`, updateHandler)
