@@ -66,7 +66,6 @@ func (m *Metric) IsValid(name string, mType string) bool {
 
 // convertValue - Convert metric value to float64 to keep
 func (m *Metric) convertValue(value string, vType string) (float64, error) {
-
 	switch vType {
 	case "float32", "float64":
 		if v, err := strconv.ParseFloat(value, 64); err == nil {
@@ -83,10 +82,10 @@ func (m *Metric) convertValue(value string, vType string) (float64, error) {
 		}
 
 	default:
-		return -10, fmt.Errorf("unknown value type: %s -> %s", value, vType)
+		return 0, fmt.Errorf("unknown value type: %s -> %s", value, vType)
 	}
-	fmt.Printf("ERROR CONVERTING %s TO %s\n\r", value, vType)
-	return -100, fmt.Errorf("type convertion error: %s -> %s", value, vType)
+	fmt.Printf("error converting %s TO %s\n\r", value, vType)
+	return 0, fmt.Errorf("type convertion error: %s -> %s", value, vType)
 }
 
 // Set metric values
