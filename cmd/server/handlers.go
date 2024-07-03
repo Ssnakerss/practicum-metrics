@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
-	"lib/metric"
 	"net/http"
+	"server/metric"
 	"strings"
 )
 

@@ -1,9 +1,9 @@
 package main
 
 import (
+	"agent/metric"
 	"bytes"
 	"fmt"
-	"lib/metric"
 	"math/rand"
 	"net/http"
 	"reflect"
