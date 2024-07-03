@@ -47,6 +47,5 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 
 func mainPage(res http.ResponseWriter, req *http.Request) {
 	body := fmt.Sprintf("Storage: \r\n %v", Stor)
-
 	res.Write([]byte(body))
 }
