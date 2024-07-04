@@ -1,11 +1,11 @@
-package main
+package handlers
 
 import (
 	"net/http"
 	"testing"
 )
 
-func Test_updateHandler(t *testing.T) {
+func TestUpdateHandler(t *testing.T) {
 	type args struct {
 		w http.ResponseWriter
 		r *http.Request
@@ -18,7 +18,7 @@ func Test_updateHandler(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			updateHandler(tt.args.w, tt.args.r)
+			UpdateHandler(tt.args.w, tt.args.r)
 		})
 	}
 }

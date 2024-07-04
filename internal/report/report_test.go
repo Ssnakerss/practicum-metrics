@@ -1,32 +1,26 @@
-package main
+package report
 
 import (
-	"agent/metric"
 	"testing"
+
+	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 )
 
-func Test_pollMemStatsMetrics(t *testing.T) {
+func TestReportMetrics(t *testing.T) {
 	type args struct {
-		metricsToGather []string
-		result          []metric.Metric
+		mm []metric.Metric
 	}
 	tests := []struct {
 		name    string
 		args    args
-		want    bool
 		wantErr bool
 	}{
 		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := pollMemStatsMetrics(tt.args.metricsToGather, tt.args.result)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("pollMemStatsMetrics() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if got != tt.want {
-				t.Errorf("pollMemStatsMetrics() = %v, want %v", got, tt.want)
+			if err := ReportMetrics(tt.args.mm); (err != nil) != tt.wantErr {
+				t.Errorf("ReportMetrics() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

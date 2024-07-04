@@ -1,13 +1,19 @@
-package main
+package handlers
 
 import (
 	"net/http"
-	"server/metric"
 	"strings"
+
+	"github.com/Ssnakerss/practicum-metrics/internal/metric"
+	"github.com/Ssnakerss/practicum-metrics/internal/storage"
 )
 
-func updateHandler(w http.ResponseWriter, r *http.Request) {
+var Stor storage.Storage
+
+func UpdateHandler(w http.ResponseWriter, r *http.Request) {
 	var m metric.Metric
+
+	Stor.New()
 
 	w.Header().Set("Content-Type", "text/plain")
 	//Only POST method allowed

@@ -1,8 +1,9 @@
-package main
+package storage
 
 import (
 	"fmt"
-	"server/metric"
+
+	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 )
 
 type Storage struct {

@@ -3,15 +3,14 @@ package main
 import (
 	"fmt"
 	"net/http"
-)
 
-var Stor Storage
+	"github.com/Ssnakerss/practicum-metrics/internal/handlers"
+)
 
 func main() {
 	fmt.Println("server started ...")
-	Stor.New()
 	mux := http.NewServeMux()
-	mux.HandleFunc(`/update/`, updateHandler)
+	mux.HandleFunc(`/update/`, handlers.UpdateHandler)
 	//mux.HandleFunc(`/`, mainPage)
 	err := http.ListenAndServe(`:8080`, mux)
 	if err != nil {

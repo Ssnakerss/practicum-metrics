@@ -1,8 +1,9 @@
-package main
+package storage
 
 import (
-	"server/metric"
 	"testing"
+
+	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 )
 
 func TestStorage_Insert(t *testing.T) {
