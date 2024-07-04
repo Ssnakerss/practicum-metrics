@@ -1,7 +1,7 @@
 package main
 
 import (
-	"agent/metric"
+	"lib/metric"
 	"testing"
 )
 

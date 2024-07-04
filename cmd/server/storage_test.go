@@ -1,7 +1,7 @@
 package main
 
 import (
-	"server/metric"
+	"lib/metric"
 	"testing"
 )
 

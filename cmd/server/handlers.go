@@ -1,9 +1,8 @@
 package main
 
 import (
-	"fmt"
+	"lib/metric"
 	"net/http"
-	"server/metric"
 	"strings"
 )
 
@@ -45,7 +44,7 @@ func updateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func mainPage(res http.ResponseWriter, req *http.Request) {
-	body := fmt.Sprintf("Storage: \r\n %v", Stor)
-	res.Write([]byte(body))
-}
+// func mainPage(res http.ResponseWriter, req *http.Request) {
+// 	body := fmt.Sprintf("Storage: \r\n %v", Stor)
+// 	res.Write([]byte(body))
+// }
