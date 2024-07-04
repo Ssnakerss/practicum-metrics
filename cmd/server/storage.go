@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"lib/metric"
+	"server/metric"
 )
 
 type Storage struct {
