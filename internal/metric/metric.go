@@ -3,7 +3,6 @@ package metric
 import (
 	"fmt"
 	"strconv"
-	"strings"
 )
 
 var AllowedMetrics = map[string]bool{
@@ -105,14 +104,16 @@ func (m *Metric) IsValid(name string, mType string) bool {
 
 // Support func to check known metrics
 func IsAllowed(name string, mType string) bool {
-	name = strings.ToLower(name)
-	mType = strings.ToLower(mType)
-	switch mType {
-	case "gauge", "counter":
-		return (AllowedMetrics[name])
-	default:
-		return false
-	}
+	return true
+
+	// name = strings.ToLower(name)
+	// mType = strings.ToLower(mType)
+	// switch mType {
+	// case "gauge", "counter":
+	// 	return (AllowedMetrics[name])
+	// default:
+	// 	return false
+	// }
 }
 
 // convertValue - Convert metric value to float64 to keep
