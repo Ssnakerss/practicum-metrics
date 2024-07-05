@@ -40,6 +40,9 @@ var AllowedMetrics = map[string]bool{
 
 	"testcounter": true,
 	"testgauge":   true,
+
+	"testsetget154": true,
+	"testsetget157": true,
 }
 
 var MemStatsMetrics = [27]string{

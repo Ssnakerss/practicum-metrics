@@ -59,7 +59,7 @@ func (st *Storage) Select(results map[string]metric.Metric, namesAndTypes ...str
 
 	if len(namesAndTypes) == 0 {
 		//Return all values
-		for k, _ := range st.metrics {
+		for k := range st.metrics {
 			results[k] = st.metrics[k]
 			found++
 		}
