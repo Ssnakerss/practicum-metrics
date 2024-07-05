@@ -77,19 +77,31 @@ var ExtraMetrics = map[string]bool{
 	"RandomValue": true,
 }
 
+// Metric key fields - name/value
+// Same name can have different values ?
+// EX.:
+// type: gauge,   name: Alloc, value:1000
+// type: counter, name: Alloc, value:[1000,20000,30000,...]
 type Metric struct {
 	//metric name - Alloc,	BuckHashSys etc
+	//Key field
 	Name string
+	//metric type - gauge, counter : use when saving to DB
+	//Key field
+	MType string
 	//metric value : float64  to to store float64, uint64 uint 32
-	Value float64
+	Value []float64
 	//metric value type : to proper convert from  float64  to  uint64 uint 32 when necessary
 	VType string
-	//metric type - gauge, counter : use when saving to DB
-	MType string
 }
 
 // IsValid - Check metric name and type by allowed values
 func (m *Metric) IsValid(name string, mType string) bool {
+	return IsAllowed(name, mType)
+}
+
+// Support func to check known metrics
+func IsAllowed(name string, mType string) bool {
 	name = strings.ToLower(name)
 	mType = strings.ToLower(mType)
 	switch mType {
@@ -131,7 +143,11 @@ func (m *Metric) Set(name string, value string, vType string, mType string) (boo
 	}
 
 	if v, err := m.convertValue(value, vType); err == nil {
-		m.Name, m.Value, m.VType, m.MType = name, v, vType, mType
+		if len(m.Value) == 0 {
+			m.Value = make([]float64, 0)
+		}
+		m.Name, m.VType, m.MType = name, vType, mType
+		m.Value = append(m.Value, v)
 		return true, nil
 	}
 	return false, fmt.Errorf("type convertion error: %s -> %s", value, vType)
