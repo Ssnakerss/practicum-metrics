@@ -81,7 +81,8 @@ func prepareBody(s string) string {
 		Stor.Select(results, s)
 		for _, v := range results {
 			if len(v.Value) > 0 {
-				body += fmt.Sprintf("%f", v.Value[0])
+				// body += fmt.Sprintf("%s", v.Value[len(v.Value)-1])
+				body += v.Value[len(v.Value)-1]
 			}
 		}
 	}

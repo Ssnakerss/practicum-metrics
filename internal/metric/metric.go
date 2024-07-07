@@ -93,7 +93,8 @@ type Metric struct {
 	//Key field
 	MType string
 	//metric value : float64  to to store float64, uint64 uint 32
-	Value []float64
+	// Value []float64
+	Value []string
 	//metric value type : to proper convert from  float64  to  uint64 uint 32 when necessary
 	VType string
 }
@@ -105,7 +106,6 @@ func (m *Metric) IsValid(name string, mType string) bool {
 
 // Support func to check known metrics
 func IsAllowed(name string, mType string) bool {
-
 	name = strings.ToLower(name)
 	mType = strings.ToLower(mType)
 	switch mType {
@@ -126,7 +126,6 @@ func (m *Metric) convertValue(value string, vType string) (float64, error) {
 		} else {
 			fmt.Println(err)
 		}
-
 	case "uint32", "uint64":
 		if v, err := strconv.ParseUint(value, 10, 64); err == nil {
 			return float64(v), nil
@@ -147,12 +146,14 @@ func (m *Metric) Set(name string, value string, vType string, mType string) (boo
 		return false, fmt.Errorf("invalid name or type: %s, %s", name, mType)
 	}
 
-	if v, err := m.convertValue(value, vType); err == nil {
+	if _, err := m.convertValue(value, vType); err == nil {
 		if len(m.Value) == 0 {
-			m.Value = make([]float64, 0)
+			// m.Value = make([]float64, 0)
+			m.Value = make([]string, 0)
 		}
 		m.Name, m.VType, m.MType = name, vType, mType
-		m.Value = append(m.Value, v)
+		// m.Value = append(m.Value, v)
+		m.Value = append(m.Value, value)
 		return true, nil
 	}
 	return false, fmt.Errorf("type convertion error: %s -> %s", value, vType)

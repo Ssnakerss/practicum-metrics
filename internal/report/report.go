@@ -2,7 +2,6 @@ package report
 
 import (
 	"fmt"
-	"strconv"
 
 	"github.com/go-resty/resty/v2"
 
@@ -36,7 +35,8 @@ func SendMetric(m metric.Metric) error {
 	// resp.Body.Close()
 	// return nil
 
-	url := serverAddr + "update/" + m.MType + "/" + m.Name + "/" + strconv.FormatFloat(m.Value[0], 'f', -1, 64)
+	// url := serverAddr + "update/" + m.MType + "/" + m.Name + "/" + strconv.FormatFloat(m.Value[0], 'f', -1, 64)
+	url := serverAddr + "update/" + m.MType + "/" + m.Name + "/" + m.Value[0]
 	client := resty.New()
 	_, err := client.R().Post(url)
 
