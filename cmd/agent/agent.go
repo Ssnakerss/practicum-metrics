@@ -19,7 +19,7 @@ const (
 func main() {
 
 	// //•	Флаг -a=<ЗНАЧЕНИЕ> отвечает за адрес эндпоинта HTTP-сервера (по умолчанию localhost:8080).
-	endPointAddress := flag.String("a", `http://localhost:8080/`, "endpoint address")
+	endPointAddress := flag.String("a", "localhost:8080", "endpoint address")
 	// //•	Флаг -r=<ЗНАЧЕНИЕ> позволяет переопределять reportInterval — частоту отправки метрик на сервер (по умолчанию 10 секунд).
 	reportInterval := flag.Int("r", 10, "report interval")
 	// //•	Флаг -p=<ЗНАЧЕНИЕ> позволяет переопределять pollInterval — частоту опроса метрик из пакета runtime (по умолчанию 2 секунды).
