@@ -21,6 +21,9 @@ func main() {
 		ep := flag.String("a", "localhost:8080", "endpoint address")
 		flag.Parse()
 		endPointAddress = *ep
+		fmt.Println("user CMD or DEFAULT for config")
+	} else {
+		fmt.Println("user ENV for config")
 	}
 
 	fmt.Printf("server started at %s\r\n", endPointAddress)

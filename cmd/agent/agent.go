@@ -19,9 +19,9 @@ const (
 )
 
 type Config struct {
-	endPointAddress string `env:"ADDRESS"`
-	reportInterval  int    `env:"REPORT_INTERVAL"`
-	pollInterval    int    `env:"POLL_INTERVAL"`
+	EndPointAddress string `env:"ADDRESS"`
+	ReportInterval  int    `env:"REPORT_INTERVAL"`
+	PollInterval    int    `env:"POLL_INTERVAL"`
 }
 
 func main() {
@@ -35,17 +35,17 @@ func main() {
 		panic(err)
 	}
 
-	if cfg.endPointAddress == "" {
+	if cfg.EndPointAddress == "" {
 		// //•	Флаг -a=<ЗНАЧЕНИЕ> отвечает за адрес эндпоинта HTTP-сервера (по умолчанию localhost:8080).
-		flag.StringVar(&cfg.endPointAddress, "a", "localhost:8080", "endpoint address")
+		flag.StringVar(&cfg.EndPointAddress, "a", "localhost:8080", "endpoint address")
 	}
-	if cfg.reportInterval == 0 {
+	if cfg.ReportInterval == 0 {
 		// //•	Флаг -r=<ЗНАЧЕНИЕ> позволяет переопределять reportInterval — частоту отправки метрик на сервер (по умолчанию 10 секунд).
-		flag.IntVar(&cfg.reportInterval, "r", 10, "report interval")
+		flag.IntVar(&cfg.ReportInterval, "r", 10, "report interval")
 	}
-	if cfg.pollInterval == 0 {
+	if cfg.PollInterval == 0 {
 		// //•	Флаг -p=<ЗНАЧЕНИЕ> позволяет переопределять pollInterval — частоту опроса метрик из пакета runtime (по умолчанию 2 секунды).
-		flag.IntVar(&cfg.pollInterval, "p", 2, "poll interval")
+		flag.IntVar(&cfg.PollInterval, "p", 2, "poll interval")
 	}
 	flag.Parse()
 
@@ -57,20 +57,20 @@ func main() {
 		gatheredMetrics[idx] = m
 	}
 	fmt.Println("Agent started")
-	fmt.Printf("Poll: %dsec, report: %dsec, endpoint:%s\n\r", cfg.pollInterval, cfg.reportInterval, cfg.endPointAddress)
+	fmt.Printf("Poll: %dsec, report: %dsec, endpoint:%s\n\r", cfg.PollInterval, cfg.ReportInterval, cfg.EndPointAddress)
 
 	var cnt uint64 = 0
 	rp := 0
 	for {
-		if rp == cfg.reportInterval {
+		if rp == cfg.ReportInterval {
 			//It's time to report metrics
 			fmt.Print("Reporting metrics ... \r")
-			report.ReportMetrics(gatheredMetrics[:], cfg.endPointAddress)
+			report.ReportMetrics(gatheredMetrics[:], cfg.EndPointAddress)
 			rp = 0
 		}
 
-		time.Sleep(time.Duration(cfg.pollInterval) * time.Second)
-		rp += cfg.pollInterval
+		time.Sleep(time.Duration(cfg.PollInterval) * time.Second)
+		rp += cfg.PollInterval
 
 		fmt.Printf("%d:Gathering metrics ... \r", cnt)
 		_, err := metric.PollMemStatsMetrics(metric.MemStatsMetrics[:], gatheredMetrics[:])
