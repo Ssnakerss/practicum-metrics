@@ -8,7 +8,8 @@ import (
 
 func TestReportMetrics(t *testing.T) {
 	type args struct {
-		mm []metric.Metric
+		mm         []metric.Metric
+		serverAddr string
 	}
 	tests := []struct {
 		name    string
@@ -19,7 +20,7 @@ func TestReportMetrics(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := ReportMetrics(tt.args.mm); (err != nil) != tt.wantErr {
+			if err := ReportMetrics(tt.args.mm, tt.args.serverAddr); (err != nil) != tt.wantErr {
 				t.Errorf("ReportMetrics() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -28,7 +29,8 @@ func TestReportMetrics(t *testing.T) {
 
 func TestSendMetric(t *testing.T) {
 	type args struct {
-		m metric.Metric
+		m          metric.Metric
+		serverAddr string
 	}
 	tests := []struct {
 		name    string
@@ -39,7 +41,7 @@ func TestSendMetric(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := SendMetric(tt.args.m); (err != nil) != tt.wantErr {
+			if err := SendMetric(tt.args.m, tt.args.serverAddr); (err != nil) != tt.wantErr {
 				t.Errorf("SendMetric() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

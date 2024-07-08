@@ -9,13 +9,12 @@ import (
 )
 
 const (
-	serverAddr  = "http://localhost:8080/"
 	contentType = "text/plain"
 )
 
-func ReportMetrics(mm []metric.Metric) error {
+func ReportMetrics(mm []metric.Metric, serverAddr string) error {
 	for _, m := range mm {
-		err := SendMetric(m)
+		err := SendMetric(m, serverAddr)
 		if err != nil {
 			fmt.Printf("error happened while sending %v: %s \r\n", m, err)
 			return err
@@ -24,7 +23,7 @@ func ReportMetrics(mm []metric.Metric) error {
 	return nil
 }
 
-func SendMetric(m metric.Metric) error {
+func SendMetric(m metric.Metric, serverAddr string) error {
 	url := serverAddr + "update/" + m.Type + "/" + m.Name + "/" + m.Value()
 	client := resty.New()
 	_, err := client.R().Post(url)
