@@ -106,7 +106,7 @@ func (m *Metric) IsValid(name string, mType string) bool {
 
 // Support func to check known metrics
 func IsAllowed(name string, mType string) bool {
-	name = strings.ToLower(name)
+	// name = strings.ToLower(name)
 	mType = strings.ToLower(mType)
 	switch mType {
 	case "gauge", "counter":
