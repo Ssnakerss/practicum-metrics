@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	var endPointAddress string = ""
+	endPointAddress := ""
 	//переменные окружения
 	//•	ADDRESS отвечает за адрес эндпоинта HTTP-сервера.
 
