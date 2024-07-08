@@ -24,7 +24,7 @@ func ReportMetrics(mm []metric.Metric, serverAddr string) error {
 }
 
 func SendMetric(m metric.Metric, serverAddr string) error {
-	url := serverAddr + "/update/" + m.Type + "/" + m.Name + "/" + m.Value()
+	url := "http://" + serverAddr + "/update/" + m.Type + "/" + m.Name + "/" + m.Value()
 	client := resty.New()
 	_, err := client.R().Post(url)
 
