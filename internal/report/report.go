@@ -24,18 +24,12 @@ func ReportMetrics(mm []metric.Metric, serverAddr string) error {
 }
 
 func SendMetric(m metric.Metric, serverAddr string) error {
-	url := serverAddr + "update/" + m.Type + "/" + m.Name + "/" + m.Value()
+	url := serverAddr + "/update/" + m.Type + "/" + m.Name + "/" + m.Value()
 	client := resty.New()
 	_, err := client.R().Post(url)
 
 	if err != nil {
 		return err
 	}
-
-	// if resp.StatusCode() != http.StatusOK {
-	// 	//server response bad code
-	// }
-
 	return nil
-
 }

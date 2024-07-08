@@ -12,7 +12,7 @@ import (
 func main() {
 
 	// •	Флаг -a=<ЗНАЧЕНИЕ> отвечает за адрес эндпоинта HTTP-сервера (по умолчанию localhost:8080).
-	endPointAddress := flag.String("a", `localhost:8080`, "endpoint address")
+	endPointAddress := flag.String("a", "localhost:8080", "endpoint address")
 
 	flag.Parse()
 
