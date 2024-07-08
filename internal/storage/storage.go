@@ -24,8 +24,7 @@ func (st *Storage) Update(m metric.Metric) (err error) {
 		}
 	}()
 
-	mKey := m.Name + "@" + m.MType
-	st.metrics[mKey] = m
+	st.metrics[m.Name] = m
 	return nil
 }
 
@@ -37,12 +36,11 @@ func (st *Storage) Insert(m metric.Metric) (err error) {
 		}
 	}()
 
-	mKey := m.Name + "@" + m.MType
-	if v, ok := st.metrics[mKey]; ok {
-		v.Value = append(v.Value, m.Value[0])
-		st.metrics[mKey] = v
+	if v, ok := st.metrics[m.Name]; ok {
+		v.Counter += m.Counter
+		st.metrics[m.Name] = v
 	} else {
-		st.metrics[mKey] = m
+		st.metrics[m.Name] = m
 	}
 
 	return nil

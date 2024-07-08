@@ -6,45 +6,6 @@ import (
 	"strings"
 )
 
-var AllowedMetrics = map[string]bool{
-	"alloc":         true,
-	"buckhashsys":   true,
-	"frees":         true,
-	"gccpufraction": true,
-	"gcsys":         true,
-	"heapalloc":     true,
-	"heapidle":      true,
-	"heapinuse":     true,
-	"heapobjects":   true,
-	"heapreleased":  true,
-	"heapsys":       true,
-	"lastgc":        true,
-	"lookups":       true,
-	"mcacheinuse":   true,
-	"mcachesys":     true,
-	"mspaninuse":    true,
-	"mspansys":      true,
-	"mallocs":       true,
-	"nextgc":        true,
-	"numforcedgc":   true,
-	"numgc":         true,
-	"othersys":      true,
-	"pausetotalns":  true,
-	"stackinuse":    true,
-	"stacksys":      true,
-	"sys":           true,
-	"totalalloc":    true,
-
-	"pollcount":   true,
-	"randomvalue": true,
-
-	"testcounter": true,
-	"testgauge":   true,
-
-	"testsetget154": true,
-	"testsetget157": true,
-}
-
 var MemStatsMetrics = [27]string{
 	"Alloc",
 	"BuckHashSys",
@@ -80,82 +41,55 @@ var ExtraMetrics = map[string]bool{
 	"RandomValue": true,
 }
 
-// Metric key fields - name/value
-// Same name can have different values ?
-// EX.:
-// type: gauge,   name: Alloc, value:1000
-// type: counter, name: Alloc, value:[1000,20000,30000,...]
 type Metric struct {
 	//metric name - Alloc,	BuckHashSys etc
-	//Key field
-	Name string
-	//metric type - gauge, counter : use when saving to DB
-	//Key field
-	MType string
-	//metric value : float64  to to store float64, uint64 uint 32
-	// Value []float64
-	Value []string
-	//metric value type : to proper convert from  float64  to  uint64 uint 32 when necessary
-	VType string
+	Name    string
+	Type    string
+	Gauge   float64
+	Counter int64
 }
 
 // IsValid - Check metric name and type by allowed values
-func (m *Metric) IsValid(name string, mType string) bool {
-	return IsAllowed(name, mType)
-}
-
-// Support func to check known metrics
-func IsAllowed(name string, mType string) bool {
-	// name = strings.ToLower(name)
+func IsValid(mType string, mValue string) bool {
 	mType = strings.ToLower(mType)
 	switch mType {
 	case "gauge", "counter":
-		return true
-		// return (AllowedMetrics[name])
-	default:
-		return false
+		if _, err := strconv.ParseFloat(mValue, 64); err == nil {
+			return true
+		}
 	}
+	return false
 }
 
-// convertValue - Convert metric value to float64 to keep
-func (m *Metric) convertValue(value string, vType string) (float64, error) {
-	switch vType {
-	case "float32", "float64":
-		if v, err := strconv.ParseFloat(value, 64); err == nil {
-			return v, nil
-		} else {
-			fmt.Println(err)
-		}
-	case "uint32", "uint64":
-		if v, err := strconv.ParseUint(value, 10, 64); err == nil {
-			return float64(v), nil
-		} else {
-			fmt.Println(err)
-		}
-
-	default:
-		return 0, fmt.Errorf("unknown value type: %s -> %s", value, vType)
+// Value -  current metric value regardless type
+func (m *Metric) Value() string {
+	switch m.Type {
+	case "gauge":
+		return strconv.FormatFloat(m.Gauge, 'f', -1, 64)
+	case "counter":
+		return strconv.FormatInt(m.Counter, 10)
 	}
-	fmt.Printf("error converting %s TO %s\n\r", value, vType)
-	return 0, fmt.Errorf("type convertion error: %s -> %s", value, vType)
+	return ""
 }
 
 // Set metric values
-func (m *Metric) Set(name string, value string, vType string, mType string) (bool, error) {
-	if !m.IsValid(name, mType) {
-		return false, fmt.Errorf("invalid name or type: %s, %s", name, mType)
+func (m *Metric) Set(mName string, mValue string, mType string) (bool, error) {
+	if !IsValid(mType, mValue) {
+		return false, fmt.Errorf("invalid metric type or value: %s, %s", mType, mValue)
 	}
+	m.Type = mType
+	m.Name = mName
 
-	if _, err := m.convertValue(value, vType); err == nil {
-		if len(m.Value) == 0 {
-			// m.Value = make([]float64, 0)
-			m.Value = make([]string, 0)
+	var err error = nil
+	switch mType {
+	case "gauge":
+		if m.Gauge, err = strconv.ParseFloat(mValue, 64); err != nil {
+			return false, err
 		}
-		m.Name, m.VType, m.MType = name, vType, mType
-		// m.Value = append(m.Value, v)
-		m.Value = append(m.Value, value)
-		return true, nil
+	case "counter":
+		if m.Counter, err = strconv.ParseInt(mValue, 0, 64); err != nil {
+			return false, err
+		}
 	}
-	return false, fmt.Errorf("type convertion error: %s -> %s", value, vType)
-
+	return true, nil
 }

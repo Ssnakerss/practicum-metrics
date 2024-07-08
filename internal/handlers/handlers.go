@@ -25,11 +25,10 @@ func ChiUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	mType := strings.ToLower(chi.URLParam(r, "type"))
 	mName := strings.ToLower(chi.URLParam(r, "name"))
 	mValue := strings.ToLower(chi.URLParam(r, "value"))
-
 	//Checking metric type and name
-	if ok, _ := m.Set(mName, mValue, "float64", mType); ok {
+	if ok, _ := m.Set(mName, mValue, mType); ok {
 		//Processing metrics values
-		switch m.MType {
+		switch mType {
 		case "gauge":
 			err := Stor.Update(m)
 			if err != nil {
@@ -55,37 +54,30 @@ func ChiGetHandler(w http.ResponseWriter, r *http.Request) {
 	mType := strings.ToLower(chi.URLParam(r, "type"))
 	mName := strings.ToLower(chi.URLParam(r, "name"))
 
-	if metric.IsAllowed(mName, mType) {
-		w.Write([]byte(prepareBody(mName + "@" + mType)))
-		// w.WriteHeader(http.StatusOK)
-	} else {
-		w.WriteHeader(http.StatusNotFound)
-	}
-}
-
-func MainPage(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte(prepareBody("")))
-	// w.WriteHeader(http.StatusOK)
-}
-
-func prepareBody(s string) string {
-	results := make(map[string]metric.Metric)
-	var body string
-
-	if s == "" {
-		Stor.Select(results)
-		for _, v := range results {
-			body += fmt.Sprintf("Name: %s Value: %v \r\n", v.Name, v.Value)
-		}
-	} else {
-		Stor.Select(results, s)
-		for _, v := range results {
-			if len(v.Value) > 0 {
-				// body += fmt.Sprintf("%s", v.Value[len(v.Value)-1])
-				body += v.Value[len(v.Value)-1]
+	if metric.IsValid(mType, "0") {
+		//Selecting metrics from storage
+		results := make(map[string]metric.Metric)
+		//--------------------------------------
+		Stor.Select(results, mName)
+		if m, ok := results[mName]; ok {
+			//Initialized with default values - "","",0,0
+			if m.Name != "" {
+				w.Write([]byte(m.Value()))
+				return
 			}
 		}
 	}
+	w.WriteHeader(http.StatusNotFound)
+}
 
-	return body
+func MainPage(w http.ResponseWriter, r *http.Request) {
+	results := make(map[string]metric.Metric)
+	var body string
+	//Return all values
+	Stor.Select(results)
+	for _, v := range results {
+		body += fmt.Sprintf("Name: %s  Type: %s Value: %s \r\n", v.Name, v.Type, v.Value())
+	}
+	w.Write([]byte(body))
+	// w.WriteHeader(http.StatusNotFound)
 }

@@ -21,7 +21,7 @@ func main() {
 	//Initialize metrics array for use
 	for idx := range gatheredMetrics {
 		var m metric.Metric
-		m.Set("testgauge", "0", "uint64", "gauge")
+		m.Set("testgauge", "0", "gauge")
 		gatheredMetrics[idx] = m
 	}
 
@@ -44,7 +44,7 @@ func main() {
 			panic(err)
 		}
 		cnt++
-		gatheredMetrics[27].Set("PollCount", strconv.FormatUint(cnt, 10), "uint64", "counter")
-		gatheredMetrics[28].Set("RandomValue", strconv.FormatFloat(rand.Float64(), 'f', -1, 64), "float64", "gauge")
+		gatheredMetrics[27].Set("PollCount", strconv.FormatUint(cnt, 10), "counter")
+		gatheredMetrics[28].Set("RandomValue", strconv.FormatFloat(rand.Float64(), 'f', -1, 64), "gauge")
 	}
 }
