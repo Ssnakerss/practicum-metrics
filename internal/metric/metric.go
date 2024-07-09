@@ -53,8 +53,12 @@ type Metric struct {
 func IsValid(mType string, mValue string) bool {
 	mType = strings.ToLower(mType)
 	switch mType {
-	case "gauge", "counter":
+	case "gauge":
 		if _, err := strconv.ParseFloat(mValue, 64); err == nil {
+			return true
+		}
+	case "counter":
+		if _, err := strconv.ParseInt(mValue, 10, 64); err == nil {
 			return true
 		}
 	}
@@ -73,9 +77,13 @@ func (m *Metric) Value() string {
 }
 
 // Set metric values
-func (m *Metric) Set(mName string, mValue string, mType string) (bool, error) {
+func (m *Metric) Set(
+	mName string,
+	mValue string,
+	mType string,
+) error {
 	if !IsValid(mType, mValue) {
-		return false, fmt.Errorf("invalid metric type or value: %s, %s", mType, mValue)
+		return fmt.Errorf("invalid metric type or value: %s, %s", mType, mValue)
 	}
 	m.Type = mType
 	m.Name = mName
@@ -84,12 +92,12 @@ func (m *Metric) Set(mName string, mValue string, mType string) (bool, error) {
 	switch mType {
 	case "gauge":
 		if m.Gauge, err = strconv.ParseFloat(mValue, 64); err != nil {
-			return false, err
+			return err
 		}
 	case "counter":
 		if m.Counter, err = strconv.ParseInt(mValue, 0, 64); err != nil {
-			return false, err
+			return err
 		}
 	}
-	return true, nil
+	return nil
 }

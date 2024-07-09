@@ -19,14 +19,20 @@ func init() {
 
 func ChiUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	var m metric.Metric
-
 	w.Header().Set("Content-Type", "text/plain")
 	//Make metric params case insensitive
 	mType := strings.ToLower(chi.URLParam(r, "type"))
 	mName := strings.ToLower(chi.URLParam(r, "name"))
 	mValue := strings.ToLower(chi.URLParam(r, "value"))
+	//--------------------------------------------------
+	//chi.URLParam - test issue
+	// fmt.Printf(">>>> URL %s \n\r", r.URL)
+	// fmt.Printf(">>>> Request %v \n\r", r)
+	// fmt.Printf(">>>> Type %s | Name %s | Value %s\n\r", mType, mName, mValue)
+	//--------------------------------------------------
+
 	//Checking metric type and name
-	if ok, _ := m.Set(mName, mValue, mType); ok {
+	if err := m.Set(mName, mValue, mType); err == nil {
 		//Processing metrics values
 		switch mType {
 		case "gauge":
@@ -43,9 +49,9 @@ func ChiUpdateHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		w.WriteHeader(http.StatusOK)
-	} else {
-		w.WriteHeader(http.StatusBadRequest)
+		return
 	}
+	w.WriteHeader(http.StatusBadRequest)
 }
 
 func ChiGetHandler(w http.ResponseWriter, r *http.Request) {

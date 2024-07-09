@@ -47,15 +47,18 @@ func (st *Storage) Insert(m metric.Metric) (err error) {
 }
 
 // namesAndTypes =metricName@metricType
-func (st *Storage) Select(results map[string]metric.Metric, namesAndTypes ...string) (found int, err error) {
+func (st *Storage) Select(
+	results map[string]metric.Metric,
+	names ...string,
+) (found int, err error) {
 	found = 0
-	for _, n := range namesAndTypes {
+	for _, n := range names {
 		//Return specific values
 		results[n] = st.metrics[n]
 		found++
 	}
 
-	if len(namesAndTypes) == 0 {
+	if len(names) == 0 {
 		//Return all values
 		for k := range st.metrics {
 			results[k] = st.metrics[k]
