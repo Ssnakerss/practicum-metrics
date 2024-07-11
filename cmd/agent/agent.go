@@ -46,7 +46,7 @@ func main() {
 	fmt.Println("Agent started")
 	fmt.Printf("Poll: %dsec, report: %dsec, endpoint:%s\n\r", cfg.PollInterval, cfg.ReportInterval, cfg.EndPointAddress)
 
-	var cnt int = 0
+	cnt := 0
 	rp := 0
 	for {
 		if rp == cfg.ReportInterval {
