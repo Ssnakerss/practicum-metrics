@@ -8,7 +8,7 @@ import (
 
 func TestReportMetrics(t *testing.T) {
 	type args struct {
-		mm         []metric.Metric
+		mm         map[string]metric.Metric
 		serverAddr string
 	}
 	tests := []struct {

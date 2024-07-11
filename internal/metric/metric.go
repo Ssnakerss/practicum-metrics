@@ -2,6 +2,7 @@ package metric
 
 import (
 	"fmt"
+	"math/rand/v2"
 	"strconv"
 	"strings"
 )
@@ -36,17 +37,31 @@ var MemStatsMetrics = [27]string{
 	"TotalAlloc",
 }
 
-var ExtraMetrics = map[string]bool{
-	"PollCount":   true,
-	"RandomValue": true,
+type etcMetrics struct {
+	MType string
+	MFunc func(p ...int) string
+}
+
+var ExtraMetrics = map[string]etcMetrics{
+	"PollCount": {
+		MType: "counter",
+		MFunc: func(p ...int) string {
+			return strconv.Itoa(p[0])
+		},
+	},
+	"RandomValue": {
+		MType: "gauge",
+		MFunc: func(p ...int) string {
+			return strconv.FormatFloat(rand.Float64(), 'f', -1, 64)
+		},
+	},
 }
 
 type Metric struct {
 	//metric name - Alloc,	BuckHashSys etc
-	Name    string
-	Type    string
-	Gauge   float64
-	Counter int64
+	Name, Type string
+	Gauge      float64
+	Counter    int64
 }
 
 // IsValid - Check metric name and type by allowed values
@@ -78,9 +93,7 @@ func (m *Metric) Value() string {
 
 // Set metric values
 func (m *Metric) Set(
-	mName string,
-	mValue string,
-	mType string,
+	mName, mValue, mType string,
 ) error {
 	if !IsValid(mType, mValue) {
 		return fmt.Errorf("invalid metric type or value: %s, %s", mType, mValue)

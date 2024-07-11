@@ -6,27 +6,28 @@ import (
 	"runtime"
 )
 
-func PollMemStatsMetrics(metricsToGather []string, result []Metric) (bool, error) {
+func PollMemStatsMetrics(metricsToGather []string,
+	result map[string]Metric) error {
+
 	var memoryStat runtime.MemStats
 	runtime.ReadMemStats(&memoryStat)
 	val := reflect.ValueOf(memoryStat)
 	idx := 0
 	for _, k := range metricsToGather {
-
 		field := val.FieldByName(k)
-		//For better code readability
 		var name, value string
 		nm, ok := val.Type().FieldByName(k)
 		if ok {
 			name = nm.Name
 		} else {
-			panic("?????")
+			return fmt.Errorf("error metric not found: %s\n\r", k)
 		}
 		value = fmt.Sprintf("%v", field)
-		// vtype = field.Type().String()
 		//----------------------------
-		result[idx].Set(name, value, "gauge")
+		var m Metric
+		m.Set(name, value, "gauge")
+		result[name] = m
 		idx++
 	}
-	return true, nil
+	return nil
 }

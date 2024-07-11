@@ -24,13 +24,6 @@ func ChiUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	mType := strings.ToLower(chi.URLParam(r, "type"))
 	mName := strings.ToLower(chi.URLParam(r, "name"))
 	mValue := strings.ToLower(chi.URLParam(r, "value"))
-	//--------------------------------------------------
-	//chi.URLParam - test issue
-	// fmt.Printf(">>>> URL %s \n\r", r.URL)
-	// fmt.Printf(">>>> Request %v \n\r", r)
-	// fmt.Printf(">>>> Type %s | Name %s | Value %s\n\r", mType, mName, mValue)
-	//--------------------------------------------------
-
 	//Checking metric type and name
 	if err := m.Set(mName, mValue, mType); err == nil {
 		//Processing metrics values
@@ -38,14 +31,14 @@ func ChiUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		case "gauge":
 			err := Stor.Update(m)
 			if err != nil {
-				//panic("UPDATE ERROR")
-				fmt.Println(err)
+				fmt.Printf("error update metric: %s\r\n", err)
+				fmt.Printf("metric value: %v\r\n", m)
 			}
 		case "counter":
 			err := Stor.Insert(m)
 			if err != nil {
-				// panic("INSERT ERROR")
-				fmt.Println(err)
+				fmt.Printf("error insert metric: %s\r\n", err)
+				fmt.Printf("metric value: %v\r\n", m)
 			}
 		}
 		w.WriteHeader(http.StatusOK)
@@ -85,5 +78,5 @@ func MainPage(w http.ResponseWriter, r *http.Request) {
 		body += fmt.Sprintf("Name: %s  Type: %s Value: %s \r\n", v.Name, v.Type, v.Value())
 	}
 	w.Write([]byte(body))
-	// w.WriteHeader(http.StatusNotFound)
+
 }

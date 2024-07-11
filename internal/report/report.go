@@ -8,11 +8,7 @@ import (
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 )
 
-// const (
-// 	contentType = "text/plain"
-// )
-
-func ReportMetrics(mm []metric.Metric, serverAddr string) error {
+func ReportMetrics(mm map[string]metric.Metric, serverAddr string) error {
 	for _, m := range mm {
 		err := SendMetric(m, serverAddr)
 		if err != nil {
