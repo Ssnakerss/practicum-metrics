@@ -26,8 +26,6 @@ func main() {
 		fmt.Println("user ENV for config")
 	}
 
-	fmt.Printf("server started at %s\r\n", endPointAddress)
-
 	r := chi.NewRouter()
 	r.Get("/", handlers.MainPage)
 	r.Get("/value/{type}/{name}", handlers.ChiGetHandler)
@@ -40,6 +38,9 @@ func main() {
 		fmt.Printf("error starting server: %s, program will exit", err)
 		os.Exit(1)
 	}
+
+	fmt.Printf("server started at %s\r\n", endPointAddress)
+
 	//If any panic happened during opeartion
 	defer func() {
 		if err := recover(); err != nil {
