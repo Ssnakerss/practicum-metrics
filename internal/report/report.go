@@ -1,7 +1,7 @@
 package report
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/go-resty/resty/v2"
 
@@ -12,7 +12,7 @@ func ReportMetrics(mm map[string]metric.Metric, serverAddr string) error {
 	for _, m := range mm {
 		err := SendMetric(m, serverAddr)
 		if err != nil {
-			fmt.Printf("error happened while sending %v: %s \r\n", m, err)
+			log.Printf("error happened while sending %v: %s \r\n", m, err)
 			return err
 		}
 	}

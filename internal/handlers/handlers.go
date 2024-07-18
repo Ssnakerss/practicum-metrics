@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"strings"
 
@@ -14,7 +15,7 @@ var Stor storage.Storage
 
 func init() {
 	Stor.New()
-	fmt.Println("Initialize storage ....")
+	log.Println("Initialize storage ....")
 }
 
 func ChiUpdateHandler(w http.ResponseWriter, r *http.Request) {
@@ -31,14 +32,14 @@ func ChiUpdateHandler(w http.ResponseWriter, r *http.Request) {
 		case "gauge":
 			err := Stor.Update(m)
 			if err != nil {
-				fmt.Printf("error update metric: %s\r\n", err)
-				fmt.Printf("metric value: %v\r\n", m)
+				log.Printf("error update metric: %s\r\n", err)
+				log.Printf("metric value: %v\r\n", m)
 			}
 		case "counter":
 			err := Stor.Insert(m)
 			if err != nil {
-				fmt.Printf("error insert metric: %s\r\n", err)
-				fmt.Printf("metric value: %v\r\n", m)
+				log.Printf("error insert metric: %s\r\n", err)
+				log.Printf("metric value: %v\r\n", m)
 			}
 		}
 		w.WriteHeader(http.StatusOK)

@@ -101,7 +101,7 @@ func (m *Metric) Set(
 	m.Type = mType
 	m.Name = mName
 
-	var err error = nil
+	var err error
 	switch mType {
 	case "gauge":
 		if m.Gauge, err = strconv.ParseFloat(mValue, 64); err != nil {
