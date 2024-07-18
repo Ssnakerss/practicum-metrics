@@ -2,7 +2,7 @@ package main
 
 import (
 	"flag"
-	"fmt"
+	"log"
 	"time"
 
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
@@ -25,7 +25,8 @@ func main() {
 	var cfg Config
 	err := env.Parse(&cfg)
 	if err != nil {
-		fmt.Printf("error getting env prams: %s, contimue with cmd line or default\n\r", err)
+		log.Printf("error getting env prams: %s, contimue with cmd line or default\n\r", err)
+
 	}
 
 	if cfg.EndPointAddress == "" {
@@ -43,15 +44,15 @@ func main() {
 	flag.Parse()
 
 	gatheredMetrics := make(map[string]metric.Metric)
-	fmt.Println("Agent started")
-	fmt.Printf("Poll: %dsec, report: %dsec, endpoint:%s\n\r", cfg.PollInterval, cfg.ReportInterval, cfg.EndPointAddress)
+	log.Println("Agent started")
+	log.Printf("Poll: %dsec, report: %dsec, endpoint:%s\n\r", cfg.PollInterval, cfg.ReportInterval, cfg.EndPointAddress)
 
 	cnt := 0
 	rp := 0
 	for {
 		if rp == cfg.ReportInterval {
 			//It's time to report metrics
-			fmt.Print("Reporting metrics ... \r")
+			log.Print("Reporting metrics ... \r")
 			report.ReportMetrics(gatheredMetrics, cfg.EndPointAddress)
 			rp = 0
 		}
@@ -59,13 +60,13 @@ func main() {
 		time.Sleep(time.Duration(cfg.PollInterval) * time.Second)
 		rp += cfg.PollInterval
 
-		fmt.Printf("%d:Gathering MemStatsMetrics ... \r", cnt)
+		log.Printf("%d:Gathering MemStatsMetrics ... \r", cnt)
 		err := metric.PollMemStatsMetrics(metric.MemStatsMetrics[:], gatheredMetrics)
 		if err != nil {
-			fmt.Printf("error polling metrics: %s, continue...\r\n", err)
+			log.Printf("error polling metrics: %s, continue...\r\n", err)
 		}
 		cnt++
-		fmt.Printf("%d:Gathering ExtraMetrics ... \r", cnt)
+		log.Printf("%d:Gathering ExtraMetrics ... \r", cnt)
 		for n, p := range metric.ExtraMetrics {
 			var m metric.Metric
 			m.Set(n, p.MFunc(cnt), p.MType)
