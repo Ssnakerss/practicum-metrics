@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-var MemStatsMetrics = [27]string{
+var MemStatsMetrics = []string{
 	"Alloc",
 	"BuckHashSys",
 	"Frees",
@@ -57,11 +57,36 @@ var ExtraMetrics = map[string]etcMetrics{
 	},
 }
 
-type Metric struct {
-	//metric name - Alloc,	BuckHashSys etc
-	Name, Type string
-	Gauge      float64
-	Counter    int64
+type (
+	MetricsJSON struct {
+		ID    string   `json:"id"`              // имя метрики
+		MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
+		Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
+		//    ↑ это видимо для возможности делать EMPTY!
+		Delta *int64 `json:"delta,omitempty"` // значение метрики в случае передачи counter
+	}
+
+	Metric struct { // Оставляем для обратной совместимости
+		Name    string  `json:"id"`              //ID
+		Type    string  `json:"type"`            //MType
+		Gauge   float64 `json:"value,omitempty"` //Value
+		Counter int64   `json:"delta,omitempty"` //Delta
+	}
+)
+
+func ConvertMetric(m *Metric) *MetricsJSON {
+	mj := MetricsJSON{
+		ID:    m.Name,
+		MType: m.Type,
+	}
+	switch m.Type {
+	case "gauge":
+		mj.Value = &m.Gauge
+	case "counter":
+		mj.Delta = &m.Counter
+	}
+	return &mj
+
 }
 
 // IsValid - Check metric name and type by allowed values

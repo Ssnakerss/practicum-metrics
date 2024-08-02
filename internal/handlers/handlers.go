@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strings"
 
+	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 	"github.com/Ssnakerss/practicum-metrics/internal/storage"
 	"github.com/go-chi/chi/v5"
@@ -18,7 +21,7 @@ func init() {
 	log.Println("Initialize storage ....")
 }
 
-func ChiUpdateHandler(w http.ResponseWriter, r *http.Request) {
+func SetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 	var m metric.Metric
 	w.Header().Set("Content-Type", "text/plain")
 	//Make metric params case insensitive
@@ -28,27 +31,51 @@ func ChiUpdateHandler(w http.ResponseWriter, r *http.Request) {
 	//Checking metric type and name
 	if err := m.Set(mName, mValue, mType); err == nil {
 		//Processing metrics values
-		switch mType {
-		case "gauge":
-			err := Stor.Update(m)
-			if err != nil {
-				log.Printf("error update metric: %s\r\n", err)
-				log.Printf("metric value: %v\r\n", m)
-			}
-		case "counter":
-			err := Stor.Insert(m)
-			if err != nil {
-				log.Printf("error insert metric: %s\r\n", err)
-				log.Printf("metric value: %v\r\n", m)
-			}
+		if err = storage.ProcessMetric(m, &Stor); err == nil {
+			w.WriteHeader(http.StatusOK)
+			return
 		}
-		w.WriteHeader(http.StatusOK)
-		return
 	}
 	w.WriteHeader(http.StatusBadRequest)
 }
 
-func ChiGetHandler(w http.ResponseWriter, r *http.Request) {
+// Получаем и обрабатываем метрику в JSON
+func SetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
+	ct := r.Header.Get("content-type")
+	logger.SLog.Infoln("got request ", "content-type", ct)
+
+	if ct != "application/json" {
+		logger.SLog.Infow("incorrect content-type:", "content-type", ct)
+
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	var m metric.Metric
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	err = json.Unmarshal(body, &m)
+	if err != nil {
+		logger.SLog.Infow("fail to unmarshall", "body", string(body))
+
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	if err = storage.ProcessMetric(m, &Stor); err != nil {
+		logger.SLog.Infow("fail to process", "metric", m)
+
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	logger.SLog.Infow("aquire new", "metric", string(body))
+	w.WriteHeader(http.StatusOK)
+}
+
+// Получаем и обрабатываем метрику в URL params
+func GetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	//Make metric params case insensitive
 	mType := strings.ToLower(chi.URLParam(r, "type"))
@@ -70,6 +97,9 @@ func ChiGetHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotFound)
 }
 
+func GetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
+}
+
 func MainPage(w http.ResponseWriter, r *http.Request) {
 	results := make(map[string]metric.Metric)
 	var body string
@@ -79,5 +109,4 @@ func MainPage(w http.ResponseWriter, r *http.Request) {
 		body += fmt.Sprintf("Name: %s  Type: %s Value: %s \r\n", v.Name, v.Type, v.Value())
 	}
 	w.Write([]byte(body))
-
 }

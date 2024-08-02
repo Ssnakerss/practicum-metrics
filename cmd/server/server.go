@@ -5,90 +5,24 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/Ssnakerss/practicum-metrics/internal/handlers"
+	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/go-chi/chi/v5"
-
-	"go.uber.org/zap"
 )
-
-var sugar zap.SugaredLogger
-
-// Middleware для оборачивания хэндлера и логирования событий
-// Для обработки запросов
-func WithLogging(h http.Handler) http.HandlerFunc {
-	logFn := func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		uri := r.RequestURI
-		method := r.Method
-
-		//
-		responseData := &responseData{
-			status: 0,
-			size:   0,
-		}
-		lw := loggingResponseWriter{
-			ResponseWriter: w,
-			responseData:   responseData,
-		}
-		//
-
-		h.ServeHTTP(&lw, r)
-
-		duration := time.Since(start)
-		sugar.Infoln(
-			"uri", uri,
-			"method", method,
-			"duration", duration,
-		)
-		sugar.Infoln(
-			"status", responseData.status,
-			"size", responseData.size,
-		)
-	}
-	return http.HandlerFunc(logFn)
-}
-
-// Теперь займемся ответами
-type (
-	responseData struct {
-		status int
-		size   int
-	}
-	loggingResponseWriter struct {
-		http.ResponseWriter // оигинальный вритер
-		responseData        *responseData
-	}
-)
-
-func (r *loggingResponseWriter) Write(b []byte) (int, error) {
-	size, err := r.ResponseWriter.Write(b)
-	r.responseData.size += size
-	return size, err
-}
-func (r *loggingResponseWriter) WriteHeader(statusCode int) {
-	r.ResponseWriter.WriteHeader(statusCode)
-	r.responseData.status = statusCode
-}
-
-//
 
 func main() {
-
 	// cоздаем логгер ZAP
 	// не получится - проолжать не имеет смысла, fatal
-	zapLogger, err := zap.NewDevelopment()
-	if err != nil {
-		log.Fatal("FATAL: cannot initialize zap")
+	if err := logger.Initialize("DEBUG"); err != nil {
+		log.Fatal("FATAL: cannot initialize LOGGER: ", err)
 	}
-	defer zapLogger.Sync()
-	sugar = *zapLogger.Sugar()
+	defer logger.Log.Sync()
 
 	//If any panic happened during opeartion
 	defer func() {
 		if err := recover(); err != nil {
-			sugar.Fatalf(
+			logger.SLog.Fatalf(
 				"error heppened while operating -> program will exit",
 				"error", err)
 		}
@@ -104,30 +38,34 @@ func main() {
 		ep := flag.String("a", "localhost:8080", "endpoint address")
 		flag.Parse()
 		endPointAddress = *ep
-		sugar.Infow(
+		logger.SLog.Infow(
 			"use CMD or DEFAULT for config",
 			"endPointAddress", endPointAddress,
 		)
 	} else {
-		sugar.Infow(
+		logger.SLog.Infow(
 			"use ENV VAR for config",
 			"ADDRESS", endPointAddress,
 		)
 	}
 	//Configuring CHI
 	r := chi.NewRouter()
-	r.Get("/", WithLogging(http.HandlerFunc(handlers.MainPage)))
-	r.Get("/value/{type}/{name}", WithLogging(http.HandlerFunc(handlers.ChiGetHandler)))
-	r.Post("/update/{type}/{name}/{value}", WithLogging(http.HandlerFunc(handlers.ChiUpdateHandler)))
+	r.Get("/", logger.WithLogging(http.HandlerFunc(handlers.MainPage)))
 
-	sugar.Infow(
+	r.Get("/value", logger.WithLogging(http.HandlerFunc(handlers.GetDataJSONHandler)))
+	r.Post("/update", logger.WithLogging(http.HandlerFunc(handlers.SetDataJSONHandler)))
+
+	r.Get("/value/{type}/{name}", logger.WithLogging(http.HandlerFunc(handlers.GetDataTextHandler)))
+	r.Post("/update/{type}/{name}/{value}", logger.WithLogging(http.HandlerFunc(handlers.SetDataTextHandler)))
+
+	logger.SLog.Infow(
 		"starting server at",
 		"addr", endPointAddress,
 	)
 
-	err = http.ListenAndServe(endPointAddress, r)
+	err := http.ListenAndServe(endPointAddress, r)
 	if err != nil {
-		sugar.Fatalf(
+		logger.SLog.Fatalf(
 			"failed to start server -> program will exit",
 			"address", endPointAddress,
 			"error", err,

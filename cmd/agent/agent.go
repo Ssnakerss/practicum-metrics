@@ -59,13 +59,14 @@ func main() {
 
 		time.Sleep(time.Duration(cfg.PollInterval) * time.Second)
 		rp += cfg.PollInterval
-
+		//MemStat metric - получаем из runtime.MemStats
 		log.Printf("%d:Gathering MemStatsMetrics ... \r", cnt)
-		err := metric.PollMemStatsMetrics(metric.MemStatsMetrics[:], gatheredMetrics)
-		if err != nil {
+
+		if err := metric.PollMemStatsMetrics(metric.MemStatsMetrics, gatheredMetrics); err != nil {
 			log.Printf("error polling metrics: %s, continue...\r\n", err)
 		}
 		cnt++
+		// Кастомные метрики -  получаем вызывая функции из определения метрики
 		log.Printf("%d:Gathering ExtraMetrics ... \r", cnt)
 		for n, p := range metric.ExtraMetrics {
 			var m metric.Metric
