@@ -41,37 +41,38 @@ func SetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 
 // Получаем и обрабатываем метрику в JSON
 func SetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
-	ct := r.Header.Get("content-type")
-	logger.SLog.Infoln("got request ", "content-type", ct)
-
-	if ct != "application/json" {
-		logger.SLog.Infow("incorrect content-type:", "content-type", ct)
-
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
 	var m metric.Metric
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+	if checkRequestAndGetMetric(w, r, &m) {
+		//Все ОК - сохраняем метрику
+		//Все отличие отсюда ↓
+		if err := storage.ProcessMetric(m, &Stor); err != nil {
+			logger.SLog.Infow("fail to process", "metric", m)
 
-	err = json.Unmarshal(body, &m)
-	if err != nil {
-		logger.SLog.Infow("fail to unmarshall", "body", string(body))
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		logger.SLog.Infow("aquire new", "metric", m)
+		//И до сюда ↑
 
-		w.WriteHeader(http.StatusBadRequest)
-		return
+		//Надо вернуть метрику с обновленным значением Value
+		//Выбираем метрику из хранилища
+		results := make(map[string]metric.Metric)
+		//--------------------------------------
+		Stor.Select(results, m.Name)
+		if nm, ok := results[m.Name]; ok {
+			mj := metric.ConvertMetric(&nm)
+			b, err := json.Marshal(mj)
+			if err != nil {
+				logger.Log.Error("something went wrong")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write(b)
+		}
+		http.Error(w, "cannot retrieve metric from storage", http.StatusInternalServerError)
 	}
-	if err = storage.ProcessMetric(m, &Stor); err != nil {
-		logger.SLog.Infow("fail to process", "metric", m)
-
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	logger.SLog.Infow("aquire new", "metric", string(body))
-	w.WriteHeader(http.StatusOK)
 }
 
 // Получаем и обрабатываем метрику в URL params
@@ -98,6 +99,27 @@ func GetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
+	var m metric.Metric
+	if checkRequestAndGetMetric(w, r, &m) {
+		//Надо вернуть метрику с обновл↑енным значением Value
+		//Выбираем метрику из хранилища
+		results := make(map[string]metric.Metric)
+		//--------------------------------------
+		Stor.Select(results, m.Name)
+		if nm, ok := results[m.Name]; ok {
+			mj := metric.ConvertMetric(&nm)
+			b, err := json.Marshal(mj)
+			if err != nil {
+				logger.Log.Error("something went wrong")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write(b)
+		}
+		http.Error(w, "cannot retrieve metric from storage", http.StatusInternalServerError)
+	}
 }
 
 func MainPage(w http.ResponseWriter, r *http.Request) {
@@ -109,4 +131,34 @@ func MainPage(w http.ResponseWriter, r *http.Request) {
 		body += fmt.Sprintf("Name: %s  Type: %s Value: %s \r\n", v.Name, v.Type, v.Value())
 	}
 	w.Write([]byte(body))
+}
+
+// ------------------------------
+func checkRequestAndGetMetric(w http.ResponseWriter,
+	r *http.Request,
+	m *metric.Metric) bool {
+	ct := r.Header.Get("content-type")
+	logger.SLog.Infoln("got request ", "content-type", ct)
+
+	if ct != "application/json" {
+		logger.SLog.Infow("incorrect content-type:", "content-type", ct)
+
+		w.WriteHeader(http.StatusBadRequest)
+		return false
+	}
+
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return false
+	}
+
+	err = json.Unmarshal(body, m)
+	if err != nil {
+		logger.SLog.Infow("fail to unmarshall", "body", string(body))
+
+		w.WriteHeader(http.StatusBadRequest)
+		return false
+	}
+	return true
 }
