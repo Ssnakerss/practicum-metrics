@@ -1,19 +1,27 @@
 package storage
 
 import (
+	"bufio"
+	"encoding/json"
 	"fmt"
+	"os"
 
+	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 )
 
 // Key for MAP:   matricName@metricType
 type Storage struct {
-	metrics map[string]metric.Metric
+	metrics   map[string]metric.Metric
+	syncWrite bool
+	filePath  string
 }
 
 // New - initialize storage
-func (st *Storage) New() {
+func (st *Storage) New(file string, sync bool) {
 	st.metrics = make(map[string]metric.Metric)
+	st.syncWrite = sync
+	st.filePath = file
 }
 
 // Insert - add new value record
@@ -24,7 +32,14 @@ func (st *Storage) Update(m metric.Metric) (err error) {
 		}
 	}()
 
-	st.metrics[m.Name] = m
+	st.metrics[m.Name+m.Type] = m
+	//сохраняем изменения в файл
+	if st.syncWrite {
+		err := st.Save()
+		if err != nil {
+			logger.SLog.Warnw("failed file", "save", err)
+		}
+	}
 	return nil
 }
 
@@ -36,26 +51,31 @@ func (st *Storage) Insert(m metric.Metric) (err error) {
 		}
 	}()
 
-	if v, ok := st.metrics[m.Name]; ok {
+	if v, ok := st.metrics[m.Name+m.Type]; ok {
 		v.Counter += m.Counter
-		st.metrics[m.Name] = v
+		st.metrics[m.Name+m.Type] = v
 	} else {
-		st.metrics[m.Name] = m
+		st.metrics[m.Name+m.Type] = m
 	}
-
+	//сохраняем изменения в файл
+	if st.syncWrite {
+		err := st.Save()
+		if err != nil {
+			logger.SLog.Warnw("failed file", "save", err)
+		}
+	}
 	return nil
 }
 
 // namesAndTypes =metricName@metricType
-func (st *Storage) Select(
-	results map[string]metric.Metric,
-	names ...string,
-) (found int, err error) {
-	found = 0
-	for _, n := range names {
+func (st *Storage) Select(results map[string]metric.Metric, names ...metric.Metric) int {
+	found := 0
+	for _, m := range names {
 		//Return specific values
-		results[n] = st.metrics[n]
-		found++
+		if m, ok := st.metrics[m.Name+m.Type]; ok {
+			results[m.Name+m.Type] = m
+			found++
+		}
 	}
 
 	if len(names) == 0 {
@@ -65,10 +85,53 @@ func (st *Storage) Select(
 			found++
 		}
 	}
+	return found
+}
 
-	if found == 0 {
-		return -1, fmt.Errorf("data not found")
+// File oparations
+// Читаем из файла
+func (st *Storage) Restore() error {
+	file, err := os.OpenFile(st.filePath, os.O_RDONLY|os.O_CREATE, 0666)
+	if err != nil {
+		return err
 	}
-	return found, nil
+	scanner := bufio.NewScanner(file)
+	if !scanner.Scan() {
+		return err
+	}
+	data := scanner.Bytes()
+	if err = json.Unmarshal(data, &st.metrics); err != nil {
+		return err
+	}
+	return nil
+}
 
+// Пишем в файл
+func (st *Storage) Save() error {
+	var saveError error
+	file, err := os.OpenFile(st.filePath, os.O_WRONLY|os.O_CREATE, 0666)
+	if err != nil {
+		return err
+	}
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil && saveError == nil {
+			saveError = closeErr
+		}
+	}()
+
+	writer := bufio.NewWriter(file)
+	data, err := json.Marshal(&st.metrics)
+	if err != nil {
+		return err
+	}
+	if _, err := writer.Write(data); err != nil {
+		return err
+	}
+	if err := writer.WriteByte('\n'); err != nil {
+		return err
+	}
+	if err := writer.Flush(); err != nil {
+		return err
+	}
+	return saveError
 }
