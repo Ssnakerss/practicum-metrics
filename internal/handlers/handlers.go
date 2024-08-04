@@ -57,8 +57,9 @@ func SetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 		//Выбираем метрику из хранилища
 		results := make(map[string]metric.Metric)
 		//--------------------------------------
-		Stor.Select(results, m.Name)
-		if nm, ok := results[m.Name]; ok {
+		Stor.Select(results, *m)
+
+		if nm, ok := results[m.Name+m.Type]; ok {
 			mj := metric.ConvertMetricS2I(&nm)
 			b, err := json.Marshal(mj)
 			if err != nil {
@@ -79,15 +80,21 @@ func SetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 func GetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	//Make metric params case insensitive
-	mType := strings.ToLower(chi.URLParam(r, "type"))
-	mName := strings.ToLower(chi.URLParam(r, "name"))
+	// mType := strings.ToLower(chi.URLParam(r, "type"))
+	// mName := strings.ToLower(chi.URLParam(r, "name"))
+	mType := chi.URLParam(r, "type")
+	mName := chi.URLParam(r, "name")
+	m := metric.Metric{
+		Name: mName,
+		Type: mType,
+	}
 
 	if metric.IsValid(mType, "0") {
 		//Selecting metrics from storage
 		results := make(map[string]metric.Metric)
 		//--------------------------------------
-		Stor.Select(results, mName)
-		if m, ok := results[mName]; ok {
+		Stor.Select(results, m)
+		if m, ok := results[m.Name+m.Type]; ok {
 			//Initialized with default values - "","",0,0
 			if m.Name != "" {
 				w.Write([]byte(m.Value()))
@@ -105,8 +112,8 @@ func GetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 		//Выбираем метрику из хранилища
 		results := make(map[string]metric.Metric)
 		//--------------------------------------
-		Stor.Select(results, m.Name)
-		if nm, ok := results[m.Name]; ok {
+		Stor.Select(results, *m)
+		if nm, ok := results[m.Name+m.Type]; ok {
 			mj := metric.ConvertMetricS2I(&nm)
 			b, err := json.Marshal(mj)
 			if err != nil {
