@@ -41,8 +41,7 @@ func SetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 
 // Получаем и обрабатываем метрику в JSON
 func SetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
-
-	if m, err := checkRequestAndGetMetric(w, r); err == nil {
+	if m, err := checkRequestAndGetMetric(w, r, "setdata"); err == nil {
 		//Все ОК - сохраняем метрику
 		//Все отличие отсюда ↓
 		if err := storage.ProcessMetric(*m, &Stor); err != nil {
@@ -101,7 +100,7 @@ func GetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 
 func GetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 
-	if m, err := checkRequestAndGetMetric(w, r); err == nil {
+	if m, err := checkRequestAndGetMetric(w, r, "getdata"); err == nil {
 		//Надо вернуть метрику с обновл↑енным значением Value
 		//Выбираем метрику из хранилища
 		results := make(map[string]metric.Metric)
@@ -137,9 +136,9 @@ func MainPage(w http.ResponseWriter, r *http.Request) {
 
 // ------------------------------
 func checkRequestAndGetMetric(w http.ResponseWriter,
-	r *http.Request) (*metric.Metric, error) {
+	r *http.Request, rtype string) (*metric.Metric, error) {
 	ct := r.Header.Get("content-type")
-	logger.SLog.Infoln(">> got request ", "content-type", ct)
+	logger.SLog.Infoln(">> got request ", "request type", rtype, "content-type", ct)
 
 	if ct != "application/json" {
 		logger.SLog.Errorw("incorrect content-type:", "content-type", ct)

@@ -95,12 +95,17 @@ func ConvertMetricI2S(mi *MetricJSON) *Metric {
 		Name: mi.ID,
 		Type: mi.MType,
 	}
-	switch mi.MType {
-	case "gauge":
-		ms.Gauge = *mi.Value
-	case "counter":
-		ms.Counter = *mi.Delta
+
+	if mi.Value != nil || mi.Delta != nil {
+
+		switch mi.MType {
+		case "gauge":
+			ms.Gauge = *mi.Value
+		case "counter":
+			ms.Counter = *mi.Delta
+		}
 	}
+
 	return &ms
 }
 
