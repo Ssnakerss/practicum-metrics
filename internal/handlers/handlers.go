@@ -128,7 +128,7 @@ func GetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	http.Error(w, "metric not found", http.StatusBadRequest)
+	http.Error(w, "metric not found", http.StatusNotFound)
 }
 
 func MainPage(w http.ResponseWriter, r *http.Request) {
