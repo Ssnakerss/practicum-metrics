@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/Ssnakerss/practicum-metrics/internal/compression"
 	"github.com/Ssnakerss/practicum-metrics/internal/handlers"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/go-chi/chi/v5"
@@ -53,9 +54,17 @@ func main() {
 	r.Get("/", logger.WithLogging(http.HandlerFunc(handlers.MainPage)))
 
 	r.Post("/update/", logger.WithLogging(http.HandlerFunc(handlers.SetDataJSONHandler)))
-	r.Post("/value/", logger.WithLogging(http.HandlerFunc(handlers.GetDataJSONHandler)))
 
-	r.Get("/value/{type}/{name}", logger.WithLogging(http.HandlerFunc(handlers.GetDataTextHandler)))
+	r.Post("/value/",
+		logger.WithLogging(
+			compression.GzipHandle(
+				http.HandlerFunc(handlers.GetDataJSONHandler))))
+
+	r.Get("/value/{type}/{name}",
+		logger.WithLogging(
+			compression.GzipHandle(
+				http.HandlerFunc(handlers.GetDataTextHandler))))
+
 	r.Post("/update/{type}/{name}/{value}", logger.WithLogging(http.HandlerFunc(handlers.SetDataTextHandler)))
 
 	logger.SLog.Infow(

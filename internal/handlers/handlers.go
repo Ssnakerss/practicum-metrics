@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Ssnakerss/practicum-metrics/internal/compression"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 	"github.com/Ssnakerss/practicum-metrics/internal/storage"
@@ -161,6 +162,16 @@ func checkRequestAndGetMetric(w http.ResponseWriter,
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return nil, err
 	}
+	//Decompression
+	if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+		logger.SLog.Infow("gzip content received", "body", body)
+		body, err = compression.Decompress(body)
+		if err != nil {
+			logger.SLog.Errorw("failed gzip decompression", "error", err)
+		}
+		logger.SLog.Infow("gzip content decompressed", "body", body)
+	}
+	//
 
 	var mi metric.MetricJSON
 	err = json.Unmarshal(body, &mi)
