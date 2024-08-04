@@ -24,7 +24,7 @@ func (st *Storage) Update(m metric.Metric) (err error) {
 		}
 	}()
 
-	st.metrics[m.Name] = m
+	st.metrics[m.Name+m.Type] = m
 	return nil
 }
 
@@ -36,26 +36,24 @@ func (st *Storage) Insert(m metric.Metric) (err error) {
 		}
 	}()
 
-	if v, ok := st.metrics[m.Name]; ok {
+	if v, ok := st.metrics[m.Name+m.Type]; ok {
 		v.Counter += m.Counter
-		st.metrics[m.Name] = v
+		st.metrics[m.Name+m.Type] = v
 	} else {
-		st.metrics[m.Name] = m
+		st.metrics[m.Name+m.Type] = m
 	}
-
 	return nil
 }
 
 // namesAndTypes =metricName@metricType
-func (st *Storage) Select(
-	results map[string]metric.Metric,
-	names ...string,
-) (found int, err error) {
-	found = 0
-	for _, n := range names {
+func (st *Storage) Select(results map[string]metric.Metric, names ...metric.Metric) int {
+	found := 0
+	for _, m := range names {
 		//Return specific values
-		results[n] = st.metrics[n]
-		found++
+		if m, ok := st.metrics[m.Name+m.Type]; ok {
+			results[m.Name+m.Type] = m
+			found++
+		}
 	}
 
 	if len(names) == 0 {
@@ -65,10 +63,5 @@ func (st *Storage) Select(
 			found++
 		}
 	}
-
-	if found == 0 {
-		return -1, fmt.Errorf("data not found")
-	}
-	return found, nil
-
+	return found
 }
