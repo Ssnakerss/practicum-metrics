@@ -80,10 +80,10 @@ func SetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 func GetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
 	//Make metric params case insensitive
-	// mType := strings.ToLower(chi.URLParam(r, "type"))
-	// mName := strings.ToLower(chi.URLParam(r, "name"))
-	mType := chi.URLParam(r, "type")
-	mName := chi.URLParam(r, "name")
+	mType := strings.ToLower(chi.URLParam(r, "type"))
+	mName := strings.ToLower(chi.URLParam(r, "name"))
+	// mType := chi.URLParam(r, "type")
+	// mName := chi.URLParam(r, "name")
 	m := metric.Metric{
 		Name: mName,
 		Type: mType,
