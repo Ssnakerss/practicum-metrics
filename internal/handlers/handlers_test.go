@@ -72,9 +72,9 @@ func TestSetDataTextHandler(t *testing.T) {
 
 			res := w.Result()
 			defer res.Body.Close()
-			if res.StatusCode != tt.want.code {
-				// t.Errorf("%s >> Response code = %d want %d", tt.targetString, res.StatusCode, tt.want.code)
-			}
+			// if res.StatusCode != tt.want.code {
+			// 	 t.Errorf("%s >> Response code = %d want %d", tt.targetString, res.StatusCode, tt.want.code)
+			// }
 
 		})
 	}
