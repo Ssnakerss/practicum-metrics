@@ -51,7 +51,10 @@ func main() {
 	}
 	//Configuring CHI
 	r := chi.NewRouter()
-	r.Get("/", logger.WithLogging(http.HandlerFunc(handlers.MainPage)))
+	r.Get("/",
+		logger.WithLogging(
+			compression.GzipHandle(
+				http.HandlerFunc(handlers.MainPage))))
 
 	r.Post("/update/", logger.WithLogging(http.HandlerFunc(handlers.SetDataJSONHandler)))
 

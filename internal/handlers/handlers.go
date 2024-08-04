@@ -140,6 +140,7 @@ func MainPage(w http.ResponseWriter, r *http.Request) {
 	for _, v := range results {
 		body += fmt.Sprintf("Name: %s  Type: %s Value: %s \r\n", v.Name, v.Type, v.Value())
 	}
+	w.Header().Set("Content-Type", "text/html")
 	w.Write([]byte(body))
 }
 
