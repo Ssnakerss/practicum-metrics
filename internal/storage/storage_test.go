@@ -47,3 +47,37 @@ func TestStorage_Update(t *testing.T) {
 		})
 	}
 }
+
+func TestStorage_Save(t *testing.T) {
+	tests := []struct {
+		name    string
+		st      *Storage
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.st.Save(); (err != nil) != tt.wantErr {
+				t.Errorf("Storage.Save() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestStorage_Restore(t *testing.T) {
+	tests := []struct {
+		name    string
+		st      *Storage
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.st.Restore(); (err != nil) != tt.wantErr {
+				t.Errorf("Storage.Restore() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
