@@ -47,3 +47,24 @@ func TestSendMetric(t *testing.T) {
 		})
 	}
 }
+
+func TestSendMetricJSON(t *testing.T) {
+	type args struct {
+		m          metric.Metric
+		serverAddr string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		wantErr bool
+	}{
+		// TODO: Add test cases.
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := SendMetricJSON(tt.args.m, tt.args.serverAddr); (err != nil) != tt.wantErr {
+				t.Errorf("SendMetricJSON() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
