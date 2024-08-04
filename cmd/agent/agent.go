@@ -65,7 +65,6 @@ func main() {
 		if err := metric.PollMemStatsMetrics(metric.MemStatsMetrics, gatheredMetrics); err != nil {
 			log.Printf("error polling metrics: %s, continue...\r\n", err)
 		}
-		cnt++
 		// Кастомные метрики -  получаем вызывая функции из определения метрики
 		log.Printf("%d:Gathering ExtraMetrics ... \r", cnt)
 		for n, p := range metric.ExtraMetrics {
@@ -73,5 +72,6 @@ func main() {
 			m.Set(n, p.MFunc(cnt), p.MType)
 			gatheredMetrics[n] = m
 		}
+		cnt++
 	}
 }

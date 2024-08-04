@@ -36,8 +36,8 @@ func SendMetricJSON(m metric.Metric, serverAddr string) error {
 	url := "http://" + serverAddr + "/update"
 
 	//Сконвертим метрику в новый формат
-	mj := metric.ConvertMetric(&m)
-	b, err := json.Marshal(mj)
+	mi := metric.ConvertMetricS2I(&m)
+	b, err := json.Marshal(mi)
 	logger.SLog.Infow("convert metric", "byte[]", b, "json", string(b))
 
 	if err == nil {

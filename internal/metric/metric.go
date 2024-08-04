@@ -58,7 +58,7 @@ var ExtraMetrics = map[string]etcMetrics{
 }
 
 type (
-	MetricsJSON struct {
+	MetricJSON struct {
 		ID    string   `json:"id"`              // имя метрики
 		MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
 		Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
@@ -74,19 +74,34 @@ type (
 	}
 )
 
-func ConvertMetric(m *Metric) *MetricsJSON {
-	mj := MetricsJSON{
-		ID:    m.Name,
-		MType: m.Type,
+// Convert metric from [S]torage format to [I]nterface format
+func ConvertMetricS2I(ms *Metric) *MetricJSON {
+	mi := MetricJSON{
+		ID:    ms.Name,
+		MType: ms.Type,
 	}
-	switch m.Type {
+	switch ms.Type {
 	case "gauge":
-		mj.Value = &m.Gauge
+		mi.Value = &ms.Gauge
 	case "counter":
-		mj.Delta = &m.Counter
+		mi.Delta = &ms.Counter
 	}
-	return &mj
+	return &mi
+}
 
+// Convert metric from [S]torage format to [I]nterface format
+func ConvertMetricI2S(mi *MetricJSON) *Metric {
+	ms := Metric{
+		Name: mi.ID,
+		Type: mi.MType,
+	}
+	switch mi.MType {
+	case "gauge":
+		ms.Gauge = *mi.Value
+	case "counter":
+		ms.Counter = *mi.Delta
+	}
+	return &ms
 }
 
 // IsValid - Check metric name and type by allowed values

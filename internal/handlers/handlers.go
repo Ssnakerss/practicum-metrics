@@ -41,11 +41,11 @@ func SetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 
 // Получаем и обрабатываем метрику в JSON
 func SetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
-	var m metric.Metric
-	if checkRequestAndGetMetric(w, r, &m) {
+
+	if m, err := checkRequestAndGetMetric(w, r); err == nil {
 		//Все ОК - сохраняем метрику
 		//Все отличие отсюда ↓
-		if err := storage.ProcessMetric(m, &Stor); err != nil {
+		if err := storage.ProcessMetric(*m, &Stor); err != nil {
 			logger.SLog.Infow("fail to process", "metric", m)
 
 			w.WriteHeader(http.StatusBadRequest)
@@ -60,7 +60,7 @@ func SetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 		//--------------------------------------
 		Stor.Select(results, m.Name)
 		if nm, ok := results[m.Name]; ok {
-			mj := metric.ConvertMetric(&nm)
+			mj := metric.ConvertMetricS2I(&nm)
 			b, err := json.Marshal(mj)
 			if err != nil {
 				logger.Log.Error("something went wrong")
@@ -70,6 +70,7 @@ func SetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			w.Write(b)
+			return
 		}
 		http.Error(w, "cannot retrieve metric from storage", http.StatusInternalServerError)
 	}
@@ -99,15 +100,15 @@ func GetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
-	var m metric.Metric
-	if checkRequestAndGetMetric(w, r, &m) {
+
+	if m, err := checkRequestAndGetMetric(w, r); err == nil {
 		//Надо вернуть метрику с обновл↑енным значением Value
 		//Выбираем метрику из хранилища
 		results := make(map[string]metric.Metric)
 		//--------------------------------------
 		Stor.Select(results, m.Name)
 		if nm, ok := results[m.Name]; ok {
-			mj := metric.ConvertMetric(&nm)
+			mj := metric.ConvertMetricS2I(&nm)
 			b, err := json.Marshal(mj)
 			if err != nil {
 				logger.Log.Error("something went wrong")
@@ -117,6 +118,7 @@ func GetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
 			w.Write(b)
+			return
 		}
 		http.Error(w, "cannot retrieve metric from storage", http.StatusInternalServerError)
 	}
@@ -135,30 +137,32 @@ func MainPage(w http.ResponseWriter, r *http.Request) {
 
 // ------------------------------
 func checkRequestAndGetMetric(w http.ResponseWriter,
-	r *http.Request,
-	m *metric.Metric) bool {
+	r *http.Request) (*metric.Metric, error) {
 	ct := r.Header.Get("content-type")
-	logger.SLog.Infoln("got request ", "content-type", ct)
+	logger.SLog.Infoln(">> got request ", "content-type", ct)
 
 	if ct != "application/json" {
-		logger.SLog.Infow("incorrect content-type:", "content-type", ct)
+		logger.SLog.Errorw("incorrect content-type:", "content-type", ct)
 
-		w.WriteHeader(http.StatusBadRequest)
-		return false
+		http.Error(w, "incorrect content type", http.StatusBadRequest)
+		return nil, fmt.Errorf("bad request")
 	}
 
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return false
+		logger.SLog.Errorw("error reading body:", "body", r.Body)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return nil, err
 	}
 
-	err = json.Unmarshal(body, m)
+	var mi metric.MetricJSON
+	err = json.Unmarshal(body, &mi)
 	if err != nil {
-		logger.SLog.Infow("fail to unmarshall", "body", string(body))
+		logger.SLog.Errorw("fail to unmarshall", "body", string(body))
 
-		w.WriteHeader(http.StatusBadRequest)
-		return false
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return nil, fmt.Errorf("fail to unmarshall")
 	}
-	return true
+	m := metric.ConvertMetricI2S(&mi)
+	return m, nil
 }
