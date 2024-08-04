@@ -17,8 +17,8 @@ import (
 
 var Stor storage.Storage
 
-func init() {
-	Stor.New()
+func InitStorage(filePath string, syncWrite bool) {
+	Stor.New(filePath, syncWrite)
 	log.Println("Initialize storage ....")
 }
 
