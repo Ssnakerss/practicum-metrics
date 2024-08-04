@@ -33,7 +33,7 @@ func SendMetric(m metric.Metric, serverAddr string) error {
 
 // Для отправки метрик в формате JSON
 func SendMetricJSON(m metric.Metric, serverAddr string) error {
-	url := "http://" + serverAddr + "/update"
+	url := "http://" + serverAddr + "/update/"
 
 	//Сконвертим метрику в новый формат
 	mi := metric.ConvertMetricS2I(&m)

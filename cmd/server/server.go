@@ -52,8 +52,8 @@ func main() {
 	r := chi.NewRouter()
 	r.Get("/", logger.WithLogging(http.HandlerFunc(handlers.MainPage)))
 
-	r.Post("/update", logger.WithLogging(http.HandlerFunc(handlers.SetDataJSONHandler)))
-	r.Post("/value", logger.WithLogging(http.HandlerFunc(handlers.GetDataJSONHandler)))
+	r.Post("/update/", logger.WithLogging(http.HandlerFunc(handlers.SetDataJSONHandler)))
+	r.Post("/value/", logger.WithLogging(http.HandlerFunc(handlers.GetDataJSONHandler)))
 
 	r.Get("/value/{type}/{name}", logger.WithLogging(http.HandlerFunc(handlers.GetDataTextHandler)))
 	r.Post("/update/{type}/{name}/{value}", logger.WithLogging(http.HandlerFunc(handlers.SetDataTextHandler)))
