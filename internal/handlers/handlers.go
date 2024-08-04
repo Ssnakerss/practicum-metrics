@@ -39,43 +39,6 @@ func SetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusBadRequest)
 }
 
-// Получаем и обрабатываем метрику в JSON
-func SetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
-	if m, err := checkRequestAndGetMetric(w, r, "setdata"); err == nil {
-		//Все ОК - сохраняем метрику
-		//Все отличие отсюда ↓
-		if err := storage.ProcessMetric(*m, &Stor); err != nil {
-			logger.SLog.Infow("fail to process", "metric", m)
-
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		logger.SLog.Infow("aquire new", "metric", m)
-		//И до сюда ↑
-
-		//Надо вернуть метрику с обновленным значением Value
-		//Выбираем метрику из хранилища
-		results := make(map[string]metric.Metric)
-		//--------------------------------------
-		Stor.Select(results, *m)
-
-		if nm, ok := results[m.Name+m.Type]; ok {
-			mj := metric.ConvertMetricS2I(&nm)
-			b, err := json.Marshal(mj)
-			if err != nil {
-				logger.Log.Error("something went wrong")
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			w.Write(b)
-			return
-		}
-		http.Error(w, "cannot retrieve metric from storage", http.StatusInternalServerError)
-	}
-}
-
 // Получаем и обрабатываем метрику в URL params
 func GetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain")
@@ -105,14 +68,25 @@ func GetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotFound)
 }
 
-func GetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
+// Получаем и обрабатываем метрику в JSON
+func SetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
+	if m, err := checkRequestAndGetMetric(w, r, "setdata"); err == nil {
+		//Все ОК - сохраняем метрику
+		//Все отличие отсюда ↓
+		if err := storage.ProcessMetric(*m, &Stor); err != nil {
+			logger.SLog.Infow("fail to process", "metric", m)
 
-	if m, err := checkRequestAndGetMetric(w, r, "getdata"); err == nil {
-		//Надо вернуть метрику с обновл↑енным значением Value
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		logger.SLog.Infow("aquire new", "metric", m)
+		//И до сюда ↑
+
+		//Надо вернуть метрику с обновленным значением Value
 		//Выбираем метрику из хранилища
 		results := make(map[string]metric.Metric)
-		//--------------------------------------
 		Stor.Select(results, *m)
+
 		if nm, ok := results[m.Name+m.Type]; ok {
 			mj := metric.ConvertMetricS2I(&nm)
 			b, err := json.Marshal(mj)
@@ -128,6 +102,33 @@ func GetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		http.Error(w, "cannot retrieve metric from storage", http.StatusInternalServerError)
 	}
+}
+
+func GetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
+	m, err := checkRequestAndGetMetric(w, r, "getdata")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	//Надо вернуть метрику с обновленным значением Value
+	//Выбираем метрику из хранилища
+	results := make(map[string]metric.Metric)
+	if found := Stor.Select(results, *m); found > 0 {
+		if nm, ok := results[m.Name+m.Type]; ok {
+			mj := metric.ConvertMetricS2I(&nm)
+			b, err := json.Marshal(mj)
+			if err != nil {
+				logger.Log.Error("something went wrong")
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write(b)
+			return
+		}
+	}
+	http.Error(w, "metric not found", http.StatusBadRequest)
 }
 
 func MainPage(w http.ResponseWriter, r *http.Request) {
