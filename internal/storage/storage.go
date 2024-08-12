@@ -12,20 +12,43 @@ import (
 
 // Key for MAP:   matricName@metricType
 type Storage struct {
-	metrics   map[string]metric.Metric
+	metrics   map[string]*metric.Metric
 	syncWrite bool
 	filePath  string
 }
 
 // New - initialize storage
 func (st *Storage) New(file string, sync bool) {
-	st.metrics = make(map[string]metric.Metric)
+	st.metrics = make(map[string]*metric.Metric)
 	st.syncWrite = sync
 	st.filePath = file
 }
 
+func (st *Storage) SaveMetric(m *metric.Metric) error {
+	// Processing metrics values
+	var err error
+	switch m.Type {
+	case "gauge":
+		err = st.Update(m)
+	case "counter":
+		err = st.Insert(m)
+	}
+	return err
+}
+
+func (st *Storage) ReadMetric(mm *metric.Metric) error {
+	results := make(map[string]*metric.Metric)
+	if found := st.Select(results, mm); found > 0 {
+		if nm, ok := results[mm.Name+mm.Type]; ok {
+			mm = nm
+			return nil
+		}
+	}
+	return fmt.Errorf("metric not found %v", *mm)
+}
+
 // Insert - add new value record
-func (st *Storage) Update(m metric.Metric) (err error) {
+func (st *Storage) Update(m *metric.Metric) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("%v", r)
@@ -44,7 +67,7 @@ func (st *Storage) Update(m metric.Metric) (err error) {
 }
 
 // Update - update existing value or add new if missing
-func (st *Storage) Insert(m metric.Metric) (err error) {
+func (st *Storage) Insert(m *metric.Metric) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("%v", r)
@@ -68,7 +91,7 @@ func (st *Storage) Insert(m metric.Metric) (err error) {
 }
 
 // namesAndTypes =metricName@metricType
-func (st *Storage) Select(results map[string]metric.Metric, names ...metric.Metric) int {
+func (st *Storage) Select(results map[string]*metric.Metric, names ...*metric.Metric) int {
 	found := 0
 	for _, m := range names {
 		//Return specific values
@@ -77,7 +100,6 @@ func (st *Storage) Select(results map[string]metric.Metric, names ...metric.Metr
 			found++
 		}
 	}
-
 	if len(names) == 0 {
 		//Return all values
 		for k := range st.metrics {

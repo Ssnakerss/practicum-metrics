@@ -1,25 +1,20 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/Ssnakerss/practicum-metrics/internal/compression"
+	"github.com/Ssnakerss/practicum-metrics/internal/flags"
 	"github.com/Ssnakerss/practicum-metrics/internal/handlers"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
-	"github.com/caarlos0/env/v6"
+
 	"github.com/go-chi/chi/v5"
 )
-
-type Config struct {
-	StoreInterval   int    `env:"STORE_INTERVAL"`
-	FileStoragePath string `env:"FILE_STORAGE_PATH"`
-	Restore         bool   `env:"RESTORE"`
-	//ADDRESS отвечает за адрес эндпоинта HTTP-сервера.
-	EndPointAddress string `env:"ADDRESS"`
-}
 
 func main() {
 	// cоздаем логгер ZAP
@@ -38,27 +33,8 @@ func main() {
 		}
 	}()
 	//Reading configuration
-	cfg := Config{
-		StoreInterval: -1,
-	}
 
-	//Сначала считаем командную строку если есть или заполним конфиг дефолтом
-	//Флаг -a=<ЗНАЧЕНИЕ> отвечает за адрес эндпоинта HTTP-сервера (по умолчанию localhost:8080)
-	flag.StringVar(&cfg.EndPointAddress, "a", "localhost:8080", "endpoint address")
-	//Флаг -i=<ЗНАЧЕНИЕ> интервал времени в секундах, по истечении которого текущие показания
-	//сервера сохраняются на диск (по умолчанию 300 секунд, значение 0 делает запись синхронной)
-	flag.IntVar(&cfg.StoreInterval, "i", 300, "data store interval, sec")
-	//Флаг -f=<ЗНАЧЕНИЕ> путь до файла, куда сохраняются текущие значения.
-	flag.StringVar(&cfg.FileStoragePath, "f", "", "file storage path")
-	//Флаг -r=<ЗНАЧЕНИЕ>  булево значение (true/false), определяющее, загружать или нет ранее
-	//сохранённые значения из указанного файла при старте сервера (по умолчанию true)
-	flag.BoolVar(&cfg.Restore, "r", true, "restore data on startup")
-	flag.Parse()
-
-	//Потом пробуем прочитать ENV
-	//Если есть - перепишут имеющиеся значения (?)
-	err := env.Parse(&cfg)
-	if err != nil {
+	if err := flags.ReadServerConfig(); err != nil {
 		logger.SLog.Warnw("error getting env params", "error", err)
 	}
 
@@ -83,23 +59,32 @@ func main() {
 
 	r.Post("/update/{type}/{name}/{value}", logger.WithLogging(http.HandlerFunc(handlers.SetDataTextHandler)))
 
-	handlers.InitStorage(cfg.FileStoragePath, cfg.StoreInterval == 0)
-	if cfg.Restore {
-		err = handlers.Stor.Restore()
+	handlers.InitStorage(flags.Cfg.FileStoragePath, flags.Cfg.StoreInterval == 0)
+	if flags.Cfg.Restore {
+		err := handlers.Stor.Restore()
 		if err != nil {
 			logger.SLog.Warnw("data failed", "restore", err)
 		}
 	}
 
-	go intervalSave(cfg.StoreInterval)
+	go intervalSave(flags.Cfg.StoreInterval)
 
-	defer handlers.Stor.Save()
+	//------------Program exit code------------------
+	exit := make(chan os.Signal, 1)
+	signal.Notify(exit, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		sig := <-exit
+		logger.SLog.Infow("received termination", "signal", sig)
+		handlers.Stor.Save()
+		logger.Log.Fatal("program will exit")
+	}()
+	//---------------------------------
 
-	logger.SLog.Infow("starting server ", "config", cfg)
-	if err := http.ListenAndServe(cfg.EndPointAddress, r); err != nil {
+	logger.SLog.Infow("starting server ", "config", flags.Cfg)
+	if err := http.ListenAndServe(flags.Cfg.EndPointAddress, r); err != nil {
 		logger.SLog.Fatalf(
 			"failed to start server -> program will exit",
-			"address", cfg.EndPointAddress,
+			"address", flags.Cfg.EndPointAddress,
 			"error", err,
 		)
 	}
@@ -110,8 +95,9 @@ func intervalSave(interval int) {
 	if interval < 1 {
 		return
 	}
+	ticker := time.NewTicker(time.Duration(interval) * time.Second)
 	for {
-		time.Sleep(time.Duration(interval) * time.Second)
+		<-ticker.C
 		handlers.Stor.Save()
 	}
 }

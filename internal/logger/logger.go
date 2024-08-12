@@ -42,7 +42,6 @@ func WithLogging(h http.Handler) http.HandlerFunc {
 		start := time.Now()
 		uri := r.RequestURI
 		method := r.Method
-
 		//
 		responseData := &responseData{
 			status: 0,
@@ -53,7 +52,6 @@ func WithLogging(h http.Handler) http.HandlerFunc {
 			responseData:   responseData,
 		}
 		//
-
 		h.ServeHTTP(&lw, r)
 
 		duration := time.Since(start)

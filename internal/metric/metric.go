@@ -62,8 +62,7 @@ type (
 		ID    string   `json:"id"`              // имя метрики
 		MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
 		Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
-		//    ↑ это видимо для возможности делать EMPTY!
-		Delta *int64 `json:"delta,omitempty"` // значение метрики в случае передачи counter
+		Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
 	}
 
 	Metric struct { // Оставляем для обратной совместимости
