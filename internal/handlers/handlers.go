@@ -110,7 +110,7 @@ func SetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
-	m, err := checkRequestAndGetMetric(w, r, "getdata")
+	m, statusCode, err := checkRequestAndGetMetric(w, r, "getdata")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -133,7 +133,7 @@ func GetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	http.Error(w, "metric not found", http.StatusNotFound)
+	http.Error(w, "metric not found", statusCode)
 }
 
 // func readMetric(m *metric.Metric) ([]byte, int, error) {
