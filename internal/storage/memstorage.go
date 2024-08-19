@@ -20,7 +20,7 @@ func (memst *MemStorage) New(p ...string) error {
 func (memst *MemStorage) Write(m *metric.Metric) error {
 	if v, ok := memst.metrics[m.Name+m.Type]; ok {
 		v.Counter += m.Counter
-		memst.metrics[m.Name+m.Type] = v
+		v.Gauge = m.Gauge
 	} else {
 		memst.metrics[m.Name+m.Type] = m
 	}
