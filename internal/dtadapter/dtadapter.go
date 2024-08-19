@@ -58,7 +58,7 @@ func (da *Adapter) SetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 	mj, err := da.readMetricAndMarshal(m)
 	if err != nil {
 		logger.SLog.Errorw("", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
@@ -79,7 +79,7 @@ func (da *Adapter) GetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 	mj, err := da.readMetricAndMarshal(m)
 	if err != nil {
 		logger.SLog.Errorw("", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
