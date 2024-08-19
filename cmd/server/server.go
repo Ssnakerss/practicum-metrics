@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -9,9 +10,11 @@ import (
 	"time"
 
 	"github.com/Ssnakerss/practicum-metrics/internal/compression"
+	"github.com/Ssnakerss/practicum-metrics/internal/dataAdapter"
 	"github.com/Ssnakerss/practicum-metrics/internal/flags"
-	"github.com/Ssnakerss/practicum-metrics/internal/handlers"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
+	"github.com/Ssnakerss/practicum-metrics/internal/metric"
+	"github.com/Ssnakerss/practicum-metrics/internal/storage"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -33,41 +36,61 @@ func main() {
 		}
 	}()
 	//Reading configuration
-
 	if err := flags.ReadServerConfig(); err != nil {
 		logger.SLog.Warnw("error getting env params", "error", err)
 	}
+
+	//Configuring storage
+	da := dataAdapter.Adapter{}
+	memst := &storage.MemStorage{}
+	// //       ↑
+	// //https://stackoverflow.com/questions/40823315/x-does-not-implement-y-method-has-a-pointer-receiver
+	memst.New()
+	// //cannot use memst (variable of type storage.MemStorage) as storage.DataStorage value in
+	// // argument to da.New: storage.MemStorage does not implement storage.DataStorage
+	// //(method Insert has pointer receiver)memst.New()
+	// //       ↓
+	da.New(memst)
+
+	//Используем файл для хранения метрик
+	// filest := &storage.FileStorage{}
+	// filest.New(`flags.Cfg.FileStoragePath`)
+	// da.New(filest)
 
 	//Configuring CHI
 	r := chi.NewRouter()
 	r.Get("/",
 		logger.WithLogging(
 			compression.GzipHandle(
-				http.HandlerFunc(handlers.MainPage))))
-
-	r.Post("/update/", logger.WithLogging(http.HandlerFunc(handlers.SetDataJSONHandler)))
+				http.HandlerFunc(da.MainPage))))
+	// JSON handlers
+	r.Post("/update/", logger.WithLogging(
+		http.HandlerFunc(da.SetDataJSONHandler)))
 
 	r.Post("/value/",
 		logger.WithLogging(
 			compression.GzipHandle(
-				http.HandlerFunc(handlers.GetDataJSONHandler))))
+				http.HandlerFunc(da.GetDataJSONHandler))))
 
+	//TEXT handlers
 	r.Get("/value/{type}/{name}",
 		logger.WithLogging(
 			compression.GzipHandle(
-				http.HandlerFunc(handlers.GetDataTextHandler))))
+				http.HandlerFunc(da.GetDataTextHandler))))
 
-	r.Post("/update/{type}/{name}/{value}", logger.WithLogging(http.HandlerFunc(handlers.SetDataTextHandler)))
+	r.Post("/update/{type}/{name}/{value}", logger.WithLogging(http.HandlerFunc(da.SetDataTextHandler)))
 
-	handlers.InitStorage(flags.Cfg.FileStoragePath, flags.Cfg.StoreInterval == 0)
+	filest := &storage.FileStorage{}
+	filest.New(flags.Cfg.FileStoragePath)
+
 	if flags.Cfg.Restore {
-		err := handlers.Stor.Restore()
+		err := copyState(filest, memst)
 		if err != nil {
 			logger.SLog.Warnw("data failed", "restore", err)
 		}
 	}
 
-	go intervalSave(flags.Cfg.StoreInterval)
+	go intervalSave(flags.Cfg.StoreInterval, memst, filest)
 
 	//------------Program exit code------------------
 	exit := make(chan os.Signal, 1)
@@ -75,7 +98,7 @@ func main() {
 	go func() {
 		sig := <-exit
 		logger.SLog.Infow("received termination", "signal", sig)
-		handlers.Stor.Save()
+		copyState(memst, filest)
 		logger.Log.Fatal("program will exit")
 	}()
 	//---------------------------------
@@ -90,14 +113,31 @@ func main() {
 	}
 }
 
-// ----------------------------------------
-func intervalSave(interval int) {
+// Сохранение и восстановление состояния хранилища в/из файла
+func intervalSave(interval int, src storage.DataStorage, dst storage.DataStorage) {
 	if interval < 1 {
 		return
 	}
 	ticker := time.NewTicker(time.Duration(interval) * time.Second)
 	for {
 		<-ticker.C
-		handlers.Stor.Save()
+		copyState(src, dst)
 	}
+}
+
+func copyState(src storage.DataStorage, dst storage.DataStorage) error {
+	mm := make([]metric.Metric, 0)
+	readcnt, err := src.ReadAll(&mm)
+	if err != nil {
+		return err
+	}
+	writecnt, err := dst.WriteAll(&mm)
+	if err != nil {
+		return err
+	}
+	if readcnt != writecnt {
+		return fmt.Errorf("read count %d not equal to write count%d", readcnt, writecnt)
+	}
+
+	return nil
 }

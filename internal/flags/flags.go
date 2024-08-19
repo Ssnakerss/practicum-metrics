@@ -35,7 +35,7 @@ func ReadServerConfig() error {
 	//сервера сохраняются на диск (по умолчанию 300 секунд, значение 0 делает запись синхронной)
 	flag.IntVar(&Cfg.StoreInterval, "i", 300, "data store interval, sec")
 	//Флаг -f=<ЗНАЧЕНИЕ> путь до файла, куда сохраняются текущие значения.
-	flag.StringVar(&Cfg.FileStoragePath, "f", "", "file storage path")
+	flag.StringVar(&Cfg.FileStoragePath, "f", `d:\temp\filest.txt`, "file storage path")
 	//Флаг -r=<ЗНАЧЕНИЕ>  булево значение (true/false), определяющее, загружать или нет ранее
 	//сохранённые значения из указанного файла при старте сервера (по умолчанию true)
 	flag.BoolVar(&Cfg.Restore, "r", true, "restore data on startup")

@@ -28,3 +28,12 @@ func ExtendedPrint(v interface{}) {
 		// имя поля мы получаем не из значения поля, а из его типа.
 	}
 }
+
+func PadRight(s *string, pad string, ln int64) {
+	if len(*s) > int(ln) {
+		return
+	}
+	for len(*s) < int(ln) {
+		*s = *s + pad
+	}
+}

@@ -29,5 +29,11 @@ func PollMemStatsMetrics(metricsToGather []string,
 		result[name] = m
 		idx++
 	}
+	if idx == 0 {
+		return fmt.Errorf("no metric with name %v found", metricsToGather)
+	}
+	if idx != len(metricsToGather) {
+		return fmt.Errorf("not all metrics found")
+	}
 	return nil
 }
