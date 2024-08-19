@@ -1,4 +1,4 @@
-package dataadapter
+package dtadapter
 
 import (
 	"encoding/json"

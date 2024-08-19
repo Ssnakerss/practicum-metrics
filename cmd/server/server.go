@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"github.com/Ssnakerss/practicum-metrics/internal/compression"
-	"github.com/Ssnakerss/practicum-metrics/internal/dataadapter"
+	"github.com/Ssnakerss/practicum-metrics/internal/dtadapter"
 	"github.com/Ssnakerss/practicum-metrics/internal/flags"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
@@ -41,7 +41,7 @@ func main() {
 	}
 
 	//Configuring storage
-	da := dataadapter.Adapter{}
+	da := dtadapter.Adapter{}
 	memst := &storage.MemStorage{}
 	// //       ↑
 	// //https://stackoverflow.com/questions/40823315/x-does-not-implement-y-method-has-a-pointer-receiver
