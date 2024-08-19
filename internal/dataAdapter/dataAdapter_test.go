@@ -1,4 +1,4 @@
-package dataAdapter
+package dataadapter
 
 import (
 	"bytes"
