@@ -1,19 +1,16 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/Ssnakerss/practicum-metrics/internal/compression"
 	"github.com/Ssnakerss/practicum-metrics/internal/dtadapter"
 	"github.com/Ssnakerss/practicum-metrics/internal/flags"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
-	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 	"github.com/Ssnakerss/practicum-metrics/internal/storage"
 
 	"github.com/go-chi/chi/v5"
@@ -41,21 +38,23 @@ func main() {
 	}
 
 	//Configuring storage
-	da := dtadapter.Adapter{}
 	memst := &storage.MemStorage{}
-	// //       ↑
-	// //https://stackoverflow.com/questions/40823315/x-does-not-implement-y-method-has-a-pointer-receiver
 	memst.New()
-	// //cannot use memst (variable of type storage.MemStorage) as storage.DataStorage value in
-	// // argument to da.New: storage.MemStorage does not implement storage.DataStorage
-	// //(method Insert has pointer receiver)memst.New()
-	// //       ↓
-	da.New(memst)
 
-	//Используем файл для хранения метрик
-	// filest := &storage.FileStorage{}
-	// filest.New(`flags.Cfg.FileStoragePath`)
-	// da.New(filest)
+	filest := &storage.FileStorage{}
+	filest.New(flags.Cfg.FileStoragePath)
+
+	da := dtadapter.Adapter{}
+
+	if flags.Cfg.Restore {
+		err := da.CopyState(filest, memst)
+		if err != nil {
+			logger.SLog.Warnw("data failed", "restore", err)
+		}
+	}
+
+	da.New(memst)
+	da.Sync(flags.Cfg.StoreInterval, filest)
 
 	//Configuring CHI
 	r := chi.NewRouter()
@@ -80,25 +79,13 @@ func main() {
 
 	r.Post("/update/{type}/{name}/{value}", logger.WithLogging(http.HandlerFunc(da.SetDataTextHandler)))
 
-	filest := &storage.FileStorage{}
-	filest.New(flags.Cfg.FileStoragePath)
-
-	if flags.Cfg.Restore {
-		err := copyState(filest, memst)
-		if err != nil {
-			logger.SLog.Warnw("data failed", "restore", err)
-		}
-	}
-
-	go intervalSave(flags.Cfg.StoreInterval, memst, filest)
-
 	//------------Program exit code------------------
 	exit := make(chan os.Signal, 1)
 	signal.Notify(exit, os.Interrupt, syscall.SIGTERM)
 	go func() {
 		sig := <-exit
 		logger.SLog.Infow("received termination", "signal", sig)
-		copyState(memst, filest)
+		da.CopyState(memst, filest)
 		logger.Log.Fatal("program will exit")
 	}()
 	//---------------------------------
@@ -111,33 +98,4 @@ func main() {
 			"error", err,
 		)
 	}
-}
-
-// Сохранение и восстановление состояния хранилища в/из файла
-func intervalSave(interval int, src storage.DataStorage, dst storage.DataStorage) {
-	if interval < 1 {
-		return
-	}
-	ticker := time.NewTicker(time.Duration(interval) * time.Second)
-	for {
-		<-ticker.C
-		copyState(src, dst)
-	}
-}
-
-func copyState(src storage.DataStorage, dst storage.DataStorage) error {
-	mm := make([]metric.Metric, 0)
-	readcnt, err := src.ReadAll(&mm)
-	if err != nil {
-		return err
-	}
-	writecnt, err := dst.WriteAll(&mm)
-	if err != nil {
-		return err
-	}
-	if readcnt != writecnt {
-		return fmt.Errorf("read count %d not equal to write count%d", readcnt, writecnt)
-	}
-
-	return nil
 }

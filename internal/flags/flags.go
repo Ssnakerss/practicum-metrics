@@ -8,7 +8,7 @@ import (
 
 type Config struct {
 	//server params
-	StoreInterval   int    `env:"STORE_INTERVAL"`
+	StoreInterval   uint   `env:"STORE_INTERVAL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	Restore         bool   `env:"RESTORE"`
 	//Agent params
@@ -33,7 +33,7 @@ func ReadServerConfig() error {
 	//Server
 	//Флаг -i=<ЗНАЧЕНИЕ> интервал времени в секундах, по истечении которого текущие показания
 	//сервера сохраняются на диск (по умолчанию 300 секунд, значение 0 делает запись синхронной)
-	flag.IntVar(&Cfg.StoreInterval, "i", 300, "data store interval, sec")
+	flag.UintVar(&Cfg.StoreInterval, "i", 300, "data store interval, sec")
 	//Флаг -f=<ЗНАЧЕНИЕ> путь до файла, куда сохраняются текущие значения.
 	flag.StringVar(&Cfg.FileStoragePath, "f", `d:\temp\filest.txt`, "file storage path")
 	//Флаг -r=<ЗНАЧЕНИЕ>  булево значение (true/false), определяющее, загружать или нет ранее

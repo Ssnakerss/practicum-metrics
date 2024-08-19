@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/Ssnakerss/practicum-metrics/internal/compression"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
@@ -14,10 +15,66 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type Adapter struct{ ds storage.DataStorage }
+type Adapter struct {
+	ds          storage.DataStorage
+	syncStorage storage.DataStorage
+	syncMode    bool
+}
 
 func (da *Adapter) New(ds storage.DataStorage) {
 	da.ds = ds
+	da.syncMode = false
+}
+
+// Пишем в хранилище
+// Если интервал синхронизации == 0 - пишем сразу и во второе
+func (da *Adapter) Write(m *metric.Metric) error {
+	err := da.ds.Write(m)
+	if err != nil {
+		return err
+	}
+	if da.syncMode {
+		err := da.syncStorage.Write(m)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Синхронизация записи
+// Если интервал == 0 - синхронная запись во второе хранилище через метод da.Write
+// Если интревал > 0 - запускаем горутину с копированием состояния
+func (da *Adapter) Sync(interval uint, dst storage.DataStorage) {
+	da.syncStorage = dst
+	da.syncMode = (interval == 0)
+
+	if da.syncMode {
+		return
+	}
+	ticker := time.NewTicker(time.Duration(interval) * time.Second)
+	for {
+		<-ticker.C
+		da.CopyState(da.ds, da.syncStorage)
+	}
+}
+
+// Копирование состояния хранилища
+func (da *Adapter) CopyState(src storage.DataStorage, dst storage.DataStorage) error {
+	mm := make([]metric.Metric, 0)
+	readcnt, err := src.ReadAll(&mm)
+	if err != nil {
+		return err
+	}
+	writecnt, err := dst.WriteAll(&mm)
+	if err != nil {
+		return err
+	}
+	if readcnt != writecnt {
+		return fmt.Errorf("read count %d not equal to write count %d", readcnt, writecnt)
+	}
+
+	return nil
 }
 
 func (da *Adapter) MainPage(w http.ResponseWriter, r *http.Request) {
@@ -47,7 +104,7 @@ func (da *Adapter) SetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//Сохраняем метрику в хранилище
-	if err = da.ds.Write(m); err != nil {
+	if err = da.Write(m); err != nil {
 		logger.SLog.Errorw("fail to save metric", err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -141,7 +198,7 @@ func (da *Adapter) SetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 	//Processing metrics values
-	if err = da.ds.Write(&m); err != nil {
+	if err = da.Write(&m); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
