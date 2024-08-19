@@ -108,7 +108,6 @@ func TestSetGetDataTextHandler(t *testing.T) {
 			w := httptest.NewRecorder()
 			var request *http.Request
 			request = httptest.NewRequest(tt.args.method, tt.targetString, nil)
-
 			//https://stackoverflow.com/questions/54580582/testing-chi-routes-w-path-variables
 			rctx := chi.NewRouteContext()
 			rctx.URLParams.Add("type", tt.args.mtype)

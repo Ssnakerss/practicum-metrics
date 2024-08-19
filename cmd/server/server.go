@@ -24,7 +24,7 @@ func main() {
 	}
 
 	defer logger.Log.Sync()
-	//If any panic happened during opeartion
+	//Перехватываем паники
 	defer func() {
 		if err := recover(); err != nil {
 			logger.SLog.Fatalf(
@@ -32,12 +32,13 @@ func main() {
 				"error", err)
 		}
 	}()
-	//Reading configuration
+	//Читаем конфигурацию
 	if err := flags.ReadServerConfig(); err != nil {
 		logger.SLog.Warnw("error getting env params", "error", err)
 	}
 
-	//Configuring storage
+	//Создаем хранилище
+	//Хранилище должно соответствовать интерфейсу storage.DataStorage
 	memst := &storage.MemStorage{}
 	memst.New()
 
@@ -54,6 +55,8 @@ func main() {
 	}
 
 	da.New(memst)
+	//Добавляем хранилище и включаем синхронизацию
+	//0 - пишем в оба сразе, > 0 - по расписанию
 	da.Sync(flags.Cfg.StoreInterval, filest)
 
 	//Configuring CHI
@@ -79,7 +82,7 @@ func main() {
 
 	r.Post("/update/{type}/{name}/{value}", logger.WithLogging(http.HandlerFunc(da.SetDataTextHandler)))
 
-	//------------Program exit code------------------
+	//Сохраняем состояние оперативного хранилища на диске при выходе из программы-
 	exit := make(chan os.Signal, 1)
 	signal.Notify(exit, os.Interrupt, syscall.SIGTERM)
 	go func() {
