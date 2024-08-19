@@ -48,15 +48,16 @@ func (da *Adapter) Write(m *metric.Metric) error {
 func (da *Adapter) Sync(interval uint, dst storage.DataStorage) {
 	da.syncStorage = dst
 	da.syncMode = (interval == 0)
-
 	if da.syncMode {
 		return
 	}
-	ticker := time.NewTicker(time.Duration(interval) * time.Second)
-	for {
-		<-ticker.C
-		da.CopyState(da.ds, da.syncStorage)
-	}
+	go func() {
+		ticker := time.NewTicker(time.Duration(interval) * time.Second)
+		for {
+			<-ticker.C
+			da.CopyState(da.ds, da.syncStorage)
+		}
+	}()
 }
 
 // Копирование состояния хранилища
