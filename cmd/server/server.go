@@ -44,7 +44,7 @@ func main() {
 
 	filest := &storage.FileStorage{}
 	filest.New(flags.Cfg.FileStoragePath)
-	filest.Truncate()
+	// filest.Truncate()
 
 	da := dtadapter.Adapter{}
 
