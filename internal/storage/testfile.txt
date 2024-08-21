@@ -1,0 +1,2 @@
+{"id":"testCounter","type":"counter","delta":30}                                                    
+{"id":"testGauge","type":"gauge","value":55.55}                                                     

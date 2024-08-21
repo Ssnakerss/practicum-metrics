@@ -2,37 +2,33 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 
-	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 	"github.com/Ssnakerss/practicum-metrics/internal/storage"
 )
 
 func main() {
-	m := metric.Metric{
-		Name:    "tst0",
-		Type:    "counter",
-		Gauge:   1,
-		Counter: 0,
-	}
-
 	f := storage.FileStorage{}
 	if err := f.New(`D:\Temp\superfile.txt`); err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	for i := 0; i < 2; i++ {
-		m.Counter += 550
-		m.Name = "tst" + strconv.Itoa(i)
-		fmt.Println(m.Name)
-		if err := f.Write(&m); err != nil {
-			fmt.Println(err)
-		}
-	}
+	f.Truncate()
+
+	// m := metric.Metric{
+	// 	Name: "tst22",
+	// 	// Type:    "counter",
+	// 	// Counter: 55,
+	// 	Type: "gauge",
+	// 	// Gauge: 4.4,
+	// }
+
+	// fmt.Printf("m original: %v\n", m)
+
+	// f.Write(&m)
 
 	// f.Read(&m)
-	// fmt.Printf("m: %v\n", m)
+	// fmt.Printf("m from file: %v\n", m)
 
 	// var mm []metric.Metric
 

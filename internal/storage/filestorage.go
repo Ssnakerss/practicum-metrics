@@ -43,42 +43,39 @@ func (filest *FileStorage) Write(m *metric.Metric) error {
 	}
 	defer file.Close()
 
-	data, err := json.Marshal(m)
-	if err != nil {
-		return err
-	}
-	//Выравниваем длинну данных
-	s := string(data)
-	tools.PadRight(&s, " ", chunckSize)
-	data = []byte(s)
 	//Находим позицию искомой метрики в файле для обновления записи
 	newLine := true
 	var pos, i int64
 	pos = -1
 	i = -1
 
+	//Метрика, которую можем найдем в файле
+	mm := metric.Metric{}
+
 	scanner := bufio.NewScanner(file)
 	if scanner.Scan() {
-
 		next := true
-		mm := metric.Metric{}
 		for next {
 			i++
 			l := scanner.Text()
-
 			if err = json.Unmarshal([]byte(l), &mm); err != nil {
 				return err
 			}
 
-			if m.Name+m.Type == mm.Name+mm.Type {
+			if (*m).Name+(*m).Type == mm.Name+mm.Type {
 				//Нашли нашу метрику
 				pos = i
-
 				break
 			}
 			next = scanner.Scan()
+			metric.ClearMetric(&mm)
 		}
 	}
+
+	//Метрика, которую будем писать
+	//Случае новой метрики - это метрика, которую нам передали
+	//Если метрика есть в файле -  используем  ее
+	rm := m
 
 	//Добавлять ли перевод строки. Если заменяем метрику -  то не надо
 	if pos == -1 {
@@ -88,12 +85,27 @@ func (filest *FileStorage) Write(m *metric.Metric) error {
 		}
 	} else {
 		//Нашли метрику - перезаписываем ее
+		//Ставим курсор на найденную метрику
 		if _, err := file.Seek(pos*(chunckSize+1), 0); err != nil {
 			return err
 		}
 		newLine = false
+		//Если метрика Counter - надо увеличить значение на значение из файла
 
+		mm.Counter += (*m).Counter
+		mm.Gauge = (*m).Gauge
+
+		rm = &mm
 	}
+
+	data, err := json.Marshal(rm)
+	if err != nil {
+		return err
+	}
+	//Выравниваем длинну данных
+	s := string(data)
+	tools.PadRight(&s, " ", chunckSize)
+	data = []byte(s)
 
 	writer := bufio.NewWriter(file)
 	if _, err := writer.Write(data); err != nil {
@@ -147,6 +159,7 @@ func (filest *FileStorage) Read(m *metric.Metric) error {
 			return nil
 		}
 		next = scanner.Scan()
+		metric.ClearMetric(&mm)
 	}
 	return nil
 }
@@ -163,4 +176,15 @@ func (filest *FileStorage) ReadAll(mm *([]metric.Metric)) (int, error) {
 		return 0, err
 	}
 	return len(*mm), nil
+}
+
+func (filest *FileStorage) Truncate() error {
+	if filest.filename != "" {
+		f, err := os.OpenFile(filest.filename, os.O_RDWR|os.O_TRUNC, 0666)
+		if err != nil {
+			return err
+		}
+		f.Close()
+	}
+	return nil
 }

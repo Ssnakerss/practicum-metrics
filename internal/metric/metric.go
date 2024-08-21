@@ -108,6 +108,23 @@ func ConvertMetricI2S(mi *MetricJSON) *Metric {
 	return &ms
 }
 
+func CopyMetric(src *Metric) *Metric {
+	m := Metric{
+		Name:    src.Name,
+		Type:    src.Type,
+		Counter: src.Counter,
+		Gauge:   src.Gauge,
+	}
+	return &m
+}
+
+func ClearMetric(m *Metric) {
+	m.Name = ""
+	m.Type = ""
+	m.Gauge = 0
+	m.Counter = 0
+}
+
 // IsValid - Check metric name and type by allowed values
 func IsValid(mType string, mValue string) bool {
 	mType = strings.ToLower(mType)

@@ -22,7 +22,8 @@ func (memst *MemStorage) Write(m *metric.Metric) error {
 		v.Counter += m.Counter
 		v.Gauge = m.Gauge
 	} else {
-		memst.metrics[m.Name+m.Type] = m
+		nm := metric.CopyMetric(m)
+		memst.metrics[m.Name+m.Type] = nm
 	}
 	return nil
 }
