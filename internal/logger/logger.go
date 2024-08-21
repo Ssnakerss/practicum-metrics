@@ -40,7 +40,7 @@ func Initialize(level string) error {
 func WithLogging(h http.Handler) http.HandlerFunc {
 	logFn := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		uri := r.RequestURI
+		uri := r.URL //r.RequestURI
 		method := r.Method
 		//
 		responseData := &responseData{
