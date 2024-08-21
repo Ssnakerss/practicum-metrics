@@ -89,6 +89,7 @@ func main() {
 	go func() {
 		sig := <-exit
 		logger.SLog.Infow("received termination", "signal", sig)
+		filest.Truncate()
 		da.CopyState(memst, filest)
 		logger.Log.Fatal("program will exit")
 	}()
