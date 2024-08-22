@@ -1,0 +1,1 @@
+{"id":"testGauge","type":"gauge","value":55.55}                                                     

@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-var MemStatsMetrics = [27]string{
+var MemStatsMetrics = []string{
 	"Alloc",
 	"BuckHashSys",
 	"Frees",
@@ -57,11 +57,72 @@ var ExtraMetrics = map[string]etcMetrics{
 	},
 }
 
-type Metric struct {
-	//metric name - Alloc,	BuckHashSys etc
-	Name, Type string
-	Gauge      float64
-	Counter    int64
+type (
+	MetricJSON struct {
+		ID    string   `json:"id"`              // имя метрики
+		MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
+		Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
+		Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
+	}
+
+	Metric struct { // Оставляем для обратной совместимости
+		Name    string  `json:"id"`              //ID
+		Type    string  `json:"type"`            //MType
+		Gauge   float64 `json:"value,omitempty"` //Value
+		Counter int64   `json:"delta,omitempty"` //Delta
+	}
+)
+
+// Convert metric from [S]torage format to [I]nterface format
+func ConvertMetricS2I(ms *Metric) *MetricJSON {
+	mi := MetricJSON{
+		ID:    ms.Name,
+		MType: ms.Type,
+	}
+	switch ms.Type {
+	case "gauge":
+		mi.Value = &ms.Gauge
+	case "counter":
+		mi.Delta = &ms.Counter
+	}
+	return &mi
+}
+
+// Convert metric from [S]torage format to [I]nterface format
+func ConvertMetricI2S(mi *MetricJSON) *Metric {
+	ms := Metric{
+		Name: mi.ID,
+		Type: mi.MType,
+	}
+
+	if mi.Value != nil || mi.Delta != nil {
+
+		switch mi.MType {
+		case "gauge":
+			ms.Gauge = *mi.Value
+		case "counter":
+			ms.Counter = *mi.Delta
+		}
+	}
+
+	return &ms
+}
+
+func CopyMetric(src *Metric) *Metric {
+	m := Metric{
+		Name:    src.Name,
+		Type:    src.Type,
+		Counter: src.Counter,
+		Gauge:   src.Gauge,
+	}
+	return &m
+}
+
+func ClearMetric(m *Metric) {
+	m.Name = ""
+	m.Type = ""
+	m.Gauge = 0
+	m.Counter = 0
 }
 
 // IsValid - Check metric name and type by allowed values
@@ -101,7 +162,7 @@ func (m *Metric) Set(
 	m.Type = mType
 	m.Name = mName
 
-	var err error = nil
+	var err error
 	switch mType {
 	case "gauge":
 		if m.Gauge, err = strconv.ParseFloat(mValue, 64); err != nil {
