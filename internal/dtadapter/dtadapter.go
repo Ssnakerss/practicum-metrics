@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Ssnakerss/practicum-metrics/internal/compression"
+	"github.com/Ssnakerss/practicum-metrics/internal/flags"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 	"github.com/Ssnakerss/practicum-metrics/internal/storage"
@@ -55,6 +56,10 @@ func (da *Adapter) Sync(interval uint, dst storage.DataStorage) {
 		ticker := time.NewTicker(time.Duration(interval) * time.Second)
 		for {
 			<-ticker.C
+
+			//Надо почистить перед записью!!!
+			da.syncStorage.Truncate()
+
 			da.CopyState(da.ds, da.syncStorage)
 		}
 	}()
@@ -224,4 +229,24 @@ func (da *Adapter) GetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Write([]byte(m.Value()))
 	w.WriteHeader(http.StatusOK)
+}
+
+// Проверяем соединение с базой данных
+func (da *Adapter) Ping(w http.ResponseWriter, r *http.Request) {
+	// ps := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+	// 	`localhost`, `5432`, `postgres`, `postgres`, `postgres`)
+
+	//`postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable`
+	//dsn := `postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable`
+
+	var db storage.DBStorage
+	db.New(flags.Cfg.DatabaseDSN, "1")
+
+	if err := db.CheckStorage(); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+
 }

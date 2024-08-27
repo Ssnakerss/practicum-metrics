@@ -10,4 +10,7 @@ type DataStorage interface {
 
 	ReadAll(*([]metric.Metric)) (int, error)
 	WriteAll(*([]metric.Metric)) (int, error)
+	Truncate() error
+
+	CheckStorage() error
 }

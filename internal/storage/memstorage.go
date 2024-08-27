@@ -57,3 +57,13 @@ func (memst *MemStorage) ReadAll(mm *([]metric.Metric)) (int, error) {
 	}
 	return cnt, nil
 }
+
+func (memst *MemStorage) Truncate() error {
+	//Чистим мапу путем создания новой
+	memst.metrics = make(map[string]*metric.Metric)
+	return nil
+}
+
+func (memst *MemStorage) CheckStorage() error {
+	return nil
+}

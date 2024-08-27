@@ -188,3 +188,7 @@ func (filest *FileStorage) Truncate() error {
 	}
 	return nil
 }
+
+func (memst *FileStorage) CheckStorage() error {
+	return nil
+}

@@ -11,6 +11,7 @@ type Config struct {
 	StoreInterval   uint   `env:"STORE_INTERVAL"`
 	FileStoragePath string `env:"FILE_STORAGE_PATH"`
 	Restore         bool   `env:"RESTORE"`
+	DatabaseDSN     string `env:"DATABASE_DSN"`
 	//Agent params
 	//REPORT_INTERVAL позволяет переопределять reportInterval.
 	//POLL_INTERVAL позволяет переопределять pollInterval.
@@ -39,6 +40,8 @@ func ReadServerConfig() error {
 	//Флаг -r=<ЗНАЧЕНИЕ>  булево значение (true/false), определяющее, загружать или нет ранее
 	//сохранённые значения из указанного файла при старте сервера (по умолчанию true)
 	flag.BoolVar(&Cfg.Restore, "r", true, "restore data on startup")
+	//Флаг -d=<значение> -  адрес подключения к БД / string
+	flag.StringVar(&Cfg.DatabaseDSN, "d", `postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable`, "database dsn adress")
 
 	flag.Parse()
 

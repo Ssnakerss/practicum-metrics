@@ -1,53 +1,33 @@
 package main
 
 import (
+	"context"
+	"database/sql"
 	"fmt"
+	"time"
 
-	"github.com/Ssnakerss/practicum-metrics/internal/metric"
-	"github.com/Ssnakerss/practicum-metrics/internal/storage"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
+// Модуль для тестирования и отладки
 func main() {
-	f := storage.FileStorage{}
-	if err := f.New(`D:\Temp\superfile.txt`); err != nil {
-		fmt.Println(err)
-		return
+	// ps := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
+	// 	`localhost`, `5432`, `postgres`, `postgres`, `postgres`)
+
+	//`postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable`
+	dsn := `postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable`
+
+	db, err := sql.Open("pgx", dsn)
+	if err != nil {
+		panic(err)
 	}
+	defer db.Close()
 
-	f.Truncate()
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
 
-	m := metric.Metric{
-		Name:    "GetSet30",
-		Type:    "counter",
-		Counter: 1049634588,
-		// Type: "gauge",
-		// Gauge: 4.4,
+	if err = db.PingContext(ctx); err != nil {
+		panic(err)
 	}
-
-	// fmt.Printf("m original: %v\n", m)
-
-	f.Write(&m)
-
-	f.Read(&m)
-	fmt.Printf("m from file: %v\n", m)
-
-	m.Counter = 829353088
-
-	f.Write(&m)
-
-	f.Read(&m)
-	fmt.Printf("m from file: %v\n", m)
-
-	// var mm []metric.Metric
-
-	// f.ReadAll(&mm)
-	// fmt.Printf("m array: %v\n", mm)
-
-	// 	file, err := os.OpenFile(`D:\Temp\superfile.txt`, os.O_RDWR|os.O_CREATE, 0666)
-	// 	if err != nil {
-	// 		log.Fatal(err)
-	// 	}
-	// 	defer file.Close()
-	// 	file.Seek(0, 2)
-	// 	file.Write([]byte("1111111111"))
+	fmt.Println("PING OK")
 }

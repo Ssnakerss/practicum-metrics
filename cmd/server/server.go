@@ -66,9 +66,16 @@ func main() {
 		logger.WithLogging(
 			compression.GzipHandle(
 				http.HandlerFunc(da.MainPage))))
+
+	//Проверка соединения с хранилищем
+	r.Get("/ping",
+		logger.WithLogging(
+			http.HandlerFunc(da.Ping)))
+
 	// JSON handlers
-	r.Post("/update/", logger.WithLogging(
-		http.HandlerFunc(da.SetDataJSONHandler)))
+	r.Post("/update/",
+		logger.WithLogging(
+			http.HandlerFunc(da.SetDataJSONHandler)))
 
 	r.Post("/value/",
 		logger.WithLogging(

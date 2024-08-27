@@ -34,10 +34,10 @@ func main() {
 		}
 
 		time.Sleep(time.Duration(flags.Cfg.PollInterval) * time.Second)
+
 		rp += flags.Cfg.PollInterval
 		//MemStat metric - получаем из runtime.MemStats
 		log.Printf("%d:Gathering MemStatsMetrics ... \r", cnt)
-
 		if err := metric.PollMemStatsMetrics(metric.MemStatsMetrics, gatheredMetrics); err != nil {
 			log.Printf("error polling metrics: %s, continue...\r\n", err)
 		}
