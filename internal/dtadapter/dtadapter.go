@@ -134,10 +134,10 @@ func (da *Adapter) MainPage(w http.ResponseWriter, r *http.Request) {
 		body += fmt.Sprintf("Name: %s  Type: %s Value: %s \r\n", v.Name, v.Type, v.Value())
 	}
 
-	w.WriteHeader(http.StatusOK)
-
 	w.Header().Set("Content-Type", "text/html")
 	w.Write([]byte(body))
+
+	w.WriteHeader(http.StatusOK)
 }
 
 // Handler to save metric received with JSON
@@ -163,11 +163,11 @@ func (da *Adapter) SetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(mj)
 
 	w.WriteHeader(http.StatusOK)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(mj)
 }
 
 // Handler to save metric received with JSON
@@ -185,11 +185,11 @@ func (da *Adapter) GetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(mj)
 
 	w.WriteHeader(http.StatusOK)
 
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(mj)
 }
 
 // Set metric  via post url
@@ -210,9 +210,10 @@ func (da *Adapter) SetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 
 	w.Header().Set("Content-Type", "text/plain")
+
+	w.WriteHeader(http.StatusOK)
 }
 
 // Get request for metrci via URL
@@ -230,10 +231,11 @@ func (da *Adapter) GetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.Write([]byte(m.Value()))
+
+	w.WriteHeader(http.StatusOK)
 }
 
 // Проверяем соединение с базой данных
