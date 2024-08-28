@@ -1,0 +1,11 @@
+metricstest -test.v -test.run=^TestIteration1$ -agent-binary-path=cmd/agent/agent -binary-path=cmd/server/server -source-path=.\ -server-port=8080 -file-storage-path=d:\temp\filest.txt
+metricstest -test.v -test.run=^TestIteration2[AB]$ -agent-binary-path=cmd/agent/agent -binary-path=cmd/server/server -source-path=.\ -server-port=8080 -file-storage-path=d:\temp\filest.txt
+metricstest -test.v -test.run=^TestIteration3[AB]$ -agent-binary-path=cmd/agent/agent -binary-path=cmd/server/server -source-path=.\ -server-port=8080 -file-storage-path=d:\temp\filest.txt
+metricstest -test.v -test.run=^TestIteration4$ -agent-binary-path=cmd/agent/agent -binary-path=cmd/server/server -source-path=.\ -server-port=8080 -file-storage-path=d:\temp\filest.txt
+metricstest -test.v -test.run=^TestIteration5$ -agent-binary-path=cmd/agent/agent -binary-path=cmd/server/server -source-path=.\ -server-port=8080 -file-storage-path=d:\temp\filest.txt
+metricstest -test.v -test.run=^TestIteration6$ -agent-binary-path=cmd/agent/agent -binary-path=cmd/server/server -source-path=.\ -server-port=8080 -file-storage-path=d:\temp\filest.txt
+metricstest -test.v -test.run=^TestIteration7$ -agent-binary-path=cmd/agent/agent -binary-path=cmd/server/server -source-path=.\ -server-port=8080 -file-storage-path=d:\temp\filest.txt
+metricstest -test.v -test.run=^TestIteration8$ -agent-binary-path=cmd/agent/agent -binary-path=cmd/server/server -source-path=.\ -server-port=8080 -file-storage-path=d:\temp\filest.txt
+metricstest -test.v -test.run=^TestIteration9$ -agent-binary-path=cmd/agent/agent -binary-path=cmd/server/server -source-path=.\ -server-port=8080 -file-storage-path=d:\temp\filest.txt
+metricstest -test.v -test.run=^TestIteration10$ -agent-binary-path=cmd/agent/agent -binary-path=cmd/server/server -source-path=.\ -server-port=8080 -file-storage-path=d:\temp\filest.txt -database-dsn=postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable
+metricstest -test.v -test.run=^TestIteration11$ -agent-binary-path=cmd/agent/agent -binary-path=cmd/server/server -source-path=.\ -server-port=8080 -file-storage-path=d:\temp\filest.txt -database-dsn=postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable

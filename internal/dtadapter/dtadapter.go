@@ -135,9 +135,8 @@ func (da *Adapter) MainPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html")
-	w.Write([]byte(body))
-
 	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(body))
 }
 
 // Handler to save metric received with JSON
@@ -164,9 +163,8 @@ func (da *Adapter) SetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(mj)
-
 	w.WriteHeader(http.StatusOK)
+	w.Write(mj)
 
 }
 
@@ -186,9 +184,8 @@ func (da *Adapter) GetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(mj)
-
 	w.WriteHeader(http.StatusOK)
+	w.Write(mj)
 
 }
 
@@ -197,9 +194,14 @@ func (da *Adapter) SetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 	var m metric.Metric
 	var err error
 	//Make metric params case insensitive
-	mType := strings.ToLower(chi.URLParam(r, "type"))
-	mName := strings.ToLower(chi.URLParam(r, "name"))
-	mValue := strings.ToLower(chi.URLParam(r, "value"))
+	// mType := strings.ToLower(chi.URLParam(r, "type"))
+	// mName := strings.ToLower(chi.URLParam(r, "name"))
+	// mValue := strings.ToLower(chi.URLParam(r, "value"))
+
+	mType := (chi.URLParam(r, "type"))
+	mName := (chi.URLParam(r, "name"))
+	mValue := (chi.URLParam(r, "value"))
+
 	//Checking metric type and name
 	if err = m.Set(mName, mValue, mType); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -212,7 +214,6 @@ func (da *Adapter) SetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/plain")
-
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -220,8 +221,12 @@ func (da *Adapter) SetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 func (da *Adapter) GetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 	var m metric.Metric
 	//Make metric params case insensitive
-	mType := strings.ToLower(chi.URLParam(r, "type"))
-	mName := strings.ToLower(chi.URLParam(r, "name"))
+	// mType := strings.ToLower(chi.URLParam(r, "type"))
+	// mName := strings.ToLower(chi.URLParam(r, "name"))
+
+	mType := (chi.URLParam(r, "type"))
+	mName := (chi.URLParam(r, "name"))
+
 	if err := m.Set(mName, "0", mType); err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
@@ -233,9 +238,8 @@ func (da *Adapter) GetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/plain")
-	w.Write([]byte(m.Value()))
-
 	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(m.Value()))
 }
 
 // Проверяем соединение с базой данных
