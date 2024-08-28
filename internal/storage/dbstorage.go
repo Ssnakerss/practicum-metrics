@@ -14,7 +14,7 @@ import (
 type DBStorage struct {
 	dsn     string
 	timeout time.Duration
-	Db      *sql.DB
+	DB      *sql.DB
 }
 
 // TODO добавить создание таблицы
@@ -32,7 +32,7 @@ func (dbs *DBStorage) New(p ...string) error {
 	}
 	dbs.timeout = time.Duration(i)
 	//Открываем коннект
-	dbs.Db, err = sql.Open("pgx", dbs.dsn)
+	dbs.DB, err = sql.Open("pgx", dbs.dsn)
 	if err != nil {
 		return err
 	}
@@ -60,7 +60,7 @@ ALTER TABLE IF EXISTS public.metrics
 	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
 	defer cancel()
 
-	_, err = dbs.Db.ExecContext(ctx, sql)
+	_, err = dbs.DB.ExecContext(ctx, sql)
 	if err != nil {
 		dbs.Close()
 		return fmt.Errorf("db table creation failure: %w", err)
@@ -71,7 +71,7 @@ ALTER TABLE IF EXISTS public.metrics
 
 // Закрываем соединение с базой
 func (dbs *DBStorage) Close() {
-	dbs.Db.Close()
+	dbs.DB.Close()
 }
 
 // Проверяем соединение
@@ -79,7 +79,7 @@ func (dbs *DBStorage) CheckStorage() error {
 	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
 	defer cancel()
 
-	if err := dbs.Db.PingContext(ctx); err != nil {
+	if err := dbs.DB.PingContext(ctx); err != nil {
 		return err
 	}
 	return nil
@@ -98,7 +98,7 @@ func (dbs *DBStorage) Write(m *metric.Metric) error {
 		set gauge = excluded.gauge,
 			counter = metrics.counter + excluded.counter`
 
-	_, err := dbs.Db.ExecContext(ctx,
+	_, err := dbs.DB.ExecContext(ctx,
 		sql,
 		m.Name,
 		m.Type,
@@ -123,7 +123,7 @@ func (dbs *DBStorage) Read(m *metric.Metric) error {
 		, counter
 	from metrics 
 	where  name = $1 and type = $2`
-	row := dbs.Db.QueryRowContext(ctx, sql, m.Name, m.Type)
+	row := dbs.DB.QueryRowContext(ctx, sql, m.Name, m.Type)
 
 	if err := row.Scan(&m.Name, &m.Type, &m.Gauge, &m.Counter); err != nil {
 		return err
@@ -147,7 +147,7 @@ func (dbs *DBStorage) ReadAll(mm *([]metric.Metric)) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
 	defer cancel()
 
-	rows, err := dbs.Db.QueryContext(ctx, `select 
+	rows, err := dbs.DB.QueryContext(ctx, `select 
 		name
 		, type
 		, gauge
@@ -183,7 +183,7 @@ func (dbs *DBStorage) Truncate() error {
 	defer cancel()
 
 	sql := `truncate table metrics`
-	_, err := dbs.Db.ExecContext(ctx, sql)
+	_, err := dbs.DB.ExecContext(ctx, sql)
 	if err != nil {
 		return err
 	}
