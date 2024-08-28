@@ -39,26 +39,58 @@ func main() {
 
 	//Создаем хранилище
 	//Хранилище должно соответствовать интерфейсу storage.DataStorage
-	memst := &storage.MemStorage{}
-	memst.New()
 
-	filest := &storage.FileStorage{}
-	filest.New(flags.Cfg.FileStoragePath)
-	// filest.Truncate()
+	var st storage.DataStorage
 
 	da := dtadapter.Adapter{}
+	var filest *storage.FileStorage
 
-	if flags.Cfg.Restore {
-		err := da.CopyState(filest, memst)
-		if err != nil {
-			logger.SLog.Warnw("data failed", "restore", err)
+	//Если задан DSN - используем БД в качестве хранилища
+	if flags.Cfg.DatabaseDSN != "default" {
+		st = &storage.DBStorage{}
+		//Ставим таймаут 60 секунд
+		if err := st.New(flags.Cfg.DatabaseDSN, "60"); err != nil {
+			logger.SLog.Fatalf(
+				"error initialize db -> program will exit",
+				"dsn", flags.Cfg.DatabaseDSN,
+				"error", err)
+		}
+		//Очищаем таблицу   -  ???
+		st.Truncate()
+		logger.SLog.Info("using db as storage")
+	} else {
+		//Иначе используем хранение в памяти
+		st = &storage.MemStorage{}
+		st.New()
+		logger.SLog.Info("using memory as storage")
+
+		//Если задан путь к файлу - добавляем фаловое хранилище
+		if flags.Cfg.FileStoragePath != "default" {
+			filest = &storage.FileStorage{}
+			if err := filest.New(flags.Cfg.FileStoragePath); err != nil {
+				logger.SLog.Warnw("file creation failure", "path", flags.Cfg.FileStoragePath, "err", err)
+			} else {
+				if flags.Cfg.Restore {
+					//Восстанавливаем значения из файла
+					err := da.CopyState(filest, st)
+					logger.SLog.Infow("restoring data from ", "file", filest.Filename)
+					if err != nil {
+						logger.SLog.Warnw("data restore", "failed", err)
+					}
+				}
+			}
 		}
 	}
 
-	da.New(memst)
-	//Добавляем хранилище и включаем синхронизацию
-	//0 - пишем в оба сразе, > 0 - по расписанию
-	da.Sync(flags.Cfg.StoreInterval, filest)
+	da.New(st)
+	if filest != nil {
+		//Добавляем хранилище и включаем синхронизацию
+		//0 - пишем в оба сразе, > 0 - по расписанию
+		da.Sync(flags.Cfg.StoreInterval, filest)
+		logger.SLog.Infow("using a sync storage", "file", filest.Filename)
+	}
+
+	//--------------------------------------------
 
 	//Configuring CHI
 	r := chi.NewRouter()
@@ -88,7 +120,9 @@ func main() {
 			compression.GzipHandle(
 				http.HandlerFunc(da.GetDataTextHandler))))
 
-	r.Post("/update/{type}/{name}/{value}", logger.WithLogging(http.HandlerFunc(da.SetDataTextHandler)))
+	r.Post("/update/{type}/{name}/{value}",
+		logger.WithLogging(
+			http.HandlerFunc(da.SetDataTextHandler)))
 
 	//Сохраняем состояние оперативного хранилища на диске при выходе из программы-
 	exit := make(chan os.Signal, 1)
@@ -96,8 +130,13 @@ func main() {
 	go func() {
 		sig := <-exit
 		logger.SLog.Infow("received termination", "signal", sig)
-		filest.Truncate()
-		da.CopyState(memst, filest)
+		if da.SyncStorage != nil {
+			da.SyncStorage.Truncate()
+			logger.Log.Info("saving storage state to disk")
+			da.CopyState(st, da.SyncStorage)
+		}
+		//Закрываем хранилище - актуально для БД
+		da.Ds.Close()
 		logger.Log.Fatal("program will exit")
 	}()
 	//---------------------------------

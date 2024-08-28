@@ -13,4 +13,6 @@ type DataStorage interface {
 	Truncate() error
 
 	CheckStorage() error
+
+	Close()
 }

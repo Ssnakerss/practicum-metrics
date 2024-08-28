@@ -13,7 +13,7 @@ import (
 
 type FileStorage struct {
 	// DataStorage
-	filename string
+	Filename string
 }
 
 const (
@@ -25,9 +25,10 @@ func (filest *FileStorage) New(p ...string) error {
 	if len(p) < 1 {
 		return fmt.Errorf("file name no specified")
 	}
-	filest.filename = p[0]
 
-	file, err := os.OpenFile(filest.filename, os.O_RDONLY|os.O_CREATE, 0666)
+	filest.Filename = p[0]
+
+	file, err := os.OpenFile(filest.Filename, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}
@@ -37,7 +38,7 @@ func (filest *FileStorage) New(p ...string) error {
 }
 
 func (filest *FileStorage) Write(m *metric.Metric) error {
-	file, err := os.OpenFile(filest.filename, os.O_RDWR|os.O_CREATE, 0666)
+	file, err := os.OpenFile(filest.Filename, os.O_RDWR|os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}
@@ -135,7 +136,7 @@ func (filest *FileStorage) WriteAll(mm *([]metric.Metric)) (int, error) {
 }
 
 func (filest *FileStorage) Read(m *metric.Metric) error {
-	file, err := os.OpenFile(filest.filename, os.O_RDONLY|os.O_CREATE, 0666)
+	file, err := os.OpenFile(filest.Filename, os.O_RDONLY|os.O_CREATE, 0666)
 	if err != nil {
 		return err
 	}
@@ -165,7 +166,7 @@ func (filest *FileStorage) Read(m *metric.Metric) error {
 }
 
 func (filest *FileStorage) ReadAll(mm *([]metric.Metric)) (int, error) {
-	buf, err := os.ReadFile(filest.filename)
+	buf, err := os.ReadFile(filest.Filename)
 	if err != nil {
 		return 0, err
 	}
@@ -179,8 +180,8 @@ func (filest *FileStorage) ReadAll(mm *([]metric.Metric)) (int, error) {
 }
 
 func (filest *FileStorage) Truncate() error {
-	if filest.filename != "" {
-		f, err := os.OpenFile(filest.filename, os.O_RDWR|os.O_TRUNC, 0666)
+	if filest.Filename != "" {
+		f, err := os.OpenFile(filest.Filename, os.O_RDWR|os.O_TRUNC, 0666)
 		if err != nil {
 			return err
 		}
@@ -190,5 +191,9 @@ func (filest *FileStorage) Truncate() error {
 }
 
 func (filest *FileStorage) CheckStorage() error {
-	return nil
+	return fmt.Errorf("usnig file storage, db connection unavailable ")
+}
+
+func (filest *FileStorage) Close() {
+
 }

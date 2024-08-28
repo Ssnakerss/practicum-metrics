@@ -7,14 +7,17 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 type DBStorage struct {
 	dsn     string
 	timeout time.Duration
+	Db      *sql.DB
 }
 
+// TODO добавить создание таблицы
 func (dbs *DBStorage) New(p ...string) error {
 	if len(p) < 2 {
 		return fmt.Errorf("specify dsn and connection timeout")
@@ -23,37 +26,165 @@ func (dbs *DBStorage) New(p ...string) error {
 	dbs.dsn = p[0]
 	var err error
 	var i int
+
 	if i, err = strconv.Atoi(p[1]); err != nil {
 		return fmt.Errorf("timeout value %s convertion error %w ", p[1], err)
 	}
 	dbs.timeout = time.Duration(i)
-
-	// db, err := sql.Open("pgx", dbs.dsn)
-	// if err != nil {
-	// 	return err
-	// }
-	// defer db.Close()
-
-	// ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
-	// defer cancel()
-
-	// if err = db.PingContext(ctx); err != nil {
-	// 	return err
-	// }
-	return nil
-}
-
-func (dbs *DBStorage) CheckStorage() error {
-	db, err := sql.Open("pgx", dbs.dsn)
+	//Открываем коннект
+	dbs.Db, err = sql.Open("pgx", dbs.dsn)
 	if err != nil {
 		return err
 	}
-	defer db.Close()
+	//Проверям коннект
+	if err = dbs.CheckStorage(); err != nil {
+		dbs.Close()
+		return fmt.Errorf("db connection failure: %w", err)
+	}
+
+	//Создаем таблицу в базе если ее еще нет
+	sql := `CREATE TABLE IF NOT EXISTS public.metrics
+(
+    name text COLLATE pg_catalog."default" NOT NULL,
+    type text COLLATE pg_catalog."default" NOT NULL,
+    gauge double precision,
+    counter bigint,
+    CONSTRAINT metrics_pkey PRIMARY KEY (name, type)
+)
+
+TABLESPACE pg_default;
+
+ALTER TABLE IF EXISTS public.metrics
+    OWNER to postgres;`
 
 	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
 	defer cancel()
 
-	if err = db.PingContext(ctx); err != nil {
+	_, err = dbs.Db.ExecContext(ctx, sql)
+	if err != nil {
+		dbs.Close()
+		return fmt.Errorf("db table creation failure: %w", err)
+	}
+
+	return nil
+}
+
+// Закрываем соединение с базой
+func (dbs *DBStorage) Close() {
+	dbs.Db.Close()
+}
+
+// Проверяем соединение
+func (dbs *DBStorage) CheckStorage() error {
+	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
+	defer cancel()
+
+	if err := dbs.Db.PingContext(ctx); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (dbs *DBStorage) Write(m *metric.Metric) error {
+
+	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
+	defer cancel()
+
+	sql := `insert into metrics 
+	(name, type, gauge, counter)
+	values
+	($1,$2,$3,$4)
+	on conflict(name,type) do update
+		set gauge = excluded.gauge,
+			counter = metrics.counter + excluded.counter`
+
+	_, err := dbs.Db.ExecContext(ctx,
+		sql,
+		m.Name,
+		m.Type,
+		m.Gauge,
+		m.Counter,
+	)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (dbs *DBStorage) Read(m *metric.Metric) error {
+	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
+	defer cancel()
+
+	sql := `select 
+		name
+		, type
+		, gauge 
+		, counter
+	from metrics 
+	where  name = $1 and type = $2`
+	row := dbs.Db.QueryRowContext(ctx, sql, m.Name, m.Type)
+
+	if err := row.Scan(&m.Name, &m.Type, &m.Gauge, &m.Counter); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (dbs *DBStorage) WriteAll(mm *([]metric.Metric)) (int, error) {
+	cnt := 0
+	for _, m := range *mm {
+		err := dbs.Write(&m)
+		if err != nil {
+			return cnt, err
+		}
+		cnt++
+	}
+	return cnt, nil
+}
+
+func (dbs *DBStorage) ReadAll(mm *([]metric.Metric)) (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
+	defer cancel()
+
+	rows, err := dbs.Db.QueryContext(ctx, `select 
+		name
+		, type
+		, gauge
+		, counter 
+	from metrics `)
+	if err != nil {
+		return 0, err
+	}
+	defer rows.Close()
+
+	cnt := 0
+
+	for rows.Next() {
+		m := metric.Metric{}
+		if err := rows.Scan(&m.Name, &m.Type, &m.Gauge, &m.Counter); err != nil {
+			return cnt, fmt.Errorf("could not scan row: %v", err)
+		} else {
+			*mm = append(*mm, m)
+		}
+		cnt++
+	}
+	//Проверяем на ошибки в процессе чтения
+	err = rows.Err()
+	if err != nil {
+		return cnt, fmt.Errorf("error during reading data: %v", err)
+	}
+
+	return cnt, nil
+}
+
+func (dbs *DBStorage) Truncate() error {
+	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
+	defer cancel()
+
+	sql := `truncate table metrics`
+	_, err := dbs.Db.ExecContext(ctx, sql)
+	if err != nil {
 		return err
 	}
 	return nil

@@ -65,5 +65,9 @@ func (memst *MemStorage) Truncate() error {
 }
 
 func (memst *MemStorage) CheckStorage() error {
-	return nil
+	return fmt.Errorf("usnig memory storage, db connection unavailable ")
+}
+
+func (memst *MemStorage) Close() {
+
 }
