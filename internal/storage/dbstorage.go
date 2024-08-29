@@ -112,6 +112,48 @@ func (dbs *DBStorage) Write(m *metric.Metric) error {
 	return nil
 }
 
+// Сохраняем в базу [] метрик
+func (dbs *DBStorage) WriteAll(mm *([]metric.Metric)) (int, error) {
+	cnt := 0
+	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
+	defer cancel()
+
+	sql := `insert into metrics 
+	(name, type, gauge, counter)
+	values
+	($1,$2,$3,$4)
+	on conflict(name,type) do update
+	set gauge = excluded.gauge,
+	counter = metrics.counter + excluded.counter`
+
+	tx, err := dbs.DB.BeginTx(ctx, nil)
+	if err != nil {
+		return 0, err
+	}
+	// defer tx.Rollback()
+
+	for _, m := range *mm {
+		_, err := tx.Exec(sql,
+			m.Name,
+			m.Type,
+			m.Gauge,
+			m.Counter,
+		)
+		if err != nil {
+			tx.Rollback()
+			return 0, err
+		}
+		cnt++
+	}
+	err = tx.Commit()
+	if err != nil {
+		return 0, err
+	}
+
+	return cnt, nil
+
+}
+
 func (dbs *DBStorage) Read(m *metric.Metric) error {
 	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
 	defer cancel()
@@ -131,17 +173,7 @@ func (dbs *DBStorage) Read(m *metric.Metric) error {
 	return nil
 }
 
-func (dbs *DBStorage) WriteAll(mm *([]metric.Metric)) (int, error) {
-	cnt := 0
-	for _, m := range *mm {
-		err := dbs.Write(&m)
-		if err != nil {
-			return cnt, err
-		}
-		cnt++
-	}
-	return cnt, nil
-}
+//Читаем из базы массив метрик
 
 func (dbs *DBStorage) ReadAll(mm *([]metric.Metric)) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)

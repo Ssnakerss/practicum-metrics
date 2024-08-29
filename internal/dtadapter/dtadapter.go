@@ -9,10 +9,8 @@ import (
 	"time"
 
 	"github.com/Ssnakerss/practicum-metrics/internal/compression"
-	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 	"github.com/Ssnakerss/practicum-metrics/internal/storage"
-	"github.com/go-chi/chi/v5"
 )
 
 type Adapter struct {
@@ -35,8 +33,20 @@ func (da *Adapter) Write(m *metric.Metric) error {
 		return err
 	}
 	if da.syncMode {
-		err := da.SyncStorage.Write(m)
-		if err != nil {
+		if err := da.SyncStorage.Write(m); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (da *Adapter) WriteAll(mm *[]metric.Metric) error {
+	if _, err := da.Ds.WriteAll(mm); err != nil {
+		return err
+	}
+	//Пишем во второе хранилище если включена синхронная запись
+	if da.syncMode {
+		if _, err := da.SyncStorage.WriteAll(mm); err != nil {
 			return err
 		}
 	}
@@ -118,142 +128,4 @@ func (da *Adapter) checkRequestAndGetMetric(r *http.Request) (*metric.Metric, er
 		return nil, fmt.Errorf("fail to convert json: %w", err)
 	}
 	return metric.ConvertMetricI2S(&mi), nil
-}
-
-// Возвращаем список метрик
-func (da *Adapter) MainPage(w http.ResponseWriter, r *http.Request) {
-	mcs := make([]metric.Metric, 0)
-	_, err := da.Ds.ReadAll(&mcs)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	body := ""
-	for _, v := range mcs {
-		body += fmt.Sprintf("Name: %s  Type: %s Value: %s \r\n", v.Name, v.Type, v.Value())
-	}
-
-	w.Header().Set("Content-Type", "text/html")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(body))
-}
-
-// Handler to save metric received with JSON
-func (da *Adapter) SetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
-	m, err := da.checkRequestAndGetMetric(r)
-	if err != nil {
-		logger.SLog.Errorw("fail to receive data", "error", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	//Сохраняем метрику в хранилище
-	if err = da.Write(m); err != nil {
-		logger.SLog.Errorw("fail to save metric", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	logger.SLog.Infow("receive new", "metric", m)
-
-	//Возвращаем метрику из хранилища с обновленным Value
-	mj, err := da.readMetricAndMarshal(m)
-	if err != nil {
-		logger.SLog.Errorw("", err)
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(mj)
-
-}
-
-// Handler to save metric received with JSON
-func (da *Adapter) GetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
-	m, err := da.checkRequestAndGetMetric(r)
-	if err != nil {
-		logger.SLog.Errorw("fail to receive data", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	//Возвращаем метрику из хранилища с обновленным Value
-	mj, err := da.readMetricAndMarshal(m)
-	if err != nil {
-		logger.SLog.Errorw("", err)
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(mj)
-
-}
-
-// Set metric  via post url
-func (da *Adapter) SetDataTextHandler(w http.ResponseWriter, r *http.Request) {
-	var m metric.Metric
-	var err error
-	//Make metric params case insensitive
-	// mType := strings.ToLower(chi.URLParam(r, "type"))
-	// mName := strings.ToLower(chi.URLParam(r, "name"))
-	// mValue := strings.ToLower(chi.URLParam(r, "value"))
-
-	mType := (chi.URLParam(r, "type"))
-	mName := (chi.URLParam(r, "name"))
-	mValue := (chi.URLParam(r, "value"))
-
-	//Checking metric type and name
-	if err = m.Set(mName, mValue, mType); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	//Processing metrics values
-	if err = da.Write(&m); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusOK)
-}
-
-// Get request for metrci via URL
-func (da *Adapter) GetDataTextHandler(w http.ResponseWriter, r *http.Request) {
-	var m metric.Metric
-	//Make metric params case insensitive
-	// mType := strings.ToLower(chi.URLParam(r, "type"))
-	// mName := strings.ToLower(chi.URLParam(r, "name"))
-
-	mType := (chi.URLParam(r, "type"))
-	mName := (chi.URLParam(r, "name"))
-
-	if err := m.Set(mName, "0", mType); err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-	//Selecting metrics from storage
-	if err := da.Ds.Read(&m); err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(m.Value()))
-}
-
-// Проверяем соединение с базой данных
-func (da *Adapter) Ping(w http.ResponseWriter, r *http.Request) {
-
-	//Не важно, какой у нас тип хранилища используется
-	//CheckStorage вернет nil для memory & file
-	//если используется db -  проверит состояние подключения
-
-	if err := da.Ds.CheckStorage(); err != nil {
-		logger.SLog.Warnw("db storage connection check", "fail", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.WriteHeader(http.StatusOK)
 }

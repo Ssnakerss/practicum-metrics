@@ -109,6 +109,10 @@ func main() {
 		logger.WithLogging(
 			http.HandlerFunc(da.SetDataJSONHandler)))
 
+	r.Post("/updates/",
+		logger.WithLogging(
+			http.HandlerFunc(da.SetDataJSONSliceHandler)))
+
 	r.Post("/value/",
 		logger.WithLogging(
 			compression.GzipHandle(
