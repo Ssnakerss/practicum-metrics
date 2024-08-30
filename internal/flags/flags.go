@@ -2,6 +2,7 @@ package flags
 
 import (
 	"flag"
+	"time"
 
 	"github.com/caarlos0/env/v6"
 )
@@ -25,6 +26,9 @@ type Config struct {
 
 var Cfg Config
 
+// Ингтервалы для повторений при ошибках соединения и ввода-вывода
+var RetryIntervals = []time.Duration{0, 1, 3, 5}
+
 func ReadServerConfig() error {
 	//Сначала считаем командную строку если есть или заполним конфиг дефолтом
 
@@ -45,11 +49,12 @@ func ReadServerConfig() error {
 	flag.BoolVar(&Cfg.Restore, "r", true, "restore data on startup")
 
 	//Флаг -d=<значение> -  адрес подключения к БД / string
-	//flag.StringVar(&Cfg.DatabaseDSN, "d", `postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable`, "database dsn adress")
-	flag.StringVar(&Cfg.DatabaseDSN, "d", `default`, "database dsn adress")
+	flag.StringVar(&Cfg.DatabaseDSN, "d", `postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable`, "database dsn adress")
+	//flag.StringVar(&Cfg.DatabaseDSN, "d", `default`, "database dsn adress")
 
 	flag.Parse()
-
+	//Читаем переменные среды и если есть -  перезаписываем параметра ком строки или дефолты
+	//в соответствии с условием задания - высший приоритет у переменных окружения
 	return env.Parse(&Cfg)
 }
 

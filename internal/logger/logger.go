@@ -8,7 +8,6 @@ import (
 )
 
 // Log будет доступен всему коду как синглтон.
-// Никакой код навыка, кроме функции InitLogger, не должен модифицировать эту переменную.
 // По умолчанию установлен no-op-логер, который не выводит никаких сообщений.
 var Log *zap.Logger = zap.NewNop()
 var SLog *zap.SugaredLogger = Log.Sugar()
@@ -21,7 +20,8 @@ func Initialize(level string) error {
 		return err
 	}
 	// создаём новую конфигурацию логера
-	cfg := zap.NewProductionConfig()
+	// cfg := zap.NewProductionConfig()
+	cfg := zap.NewDevelopmentConfig()
 	// устанавливаем уровень
 	cfg.Level = lvl
 	// создаём логер на основе конфигурации

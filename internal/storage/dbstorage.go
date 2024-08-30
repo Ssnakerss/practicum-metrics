@@ -44,19 +44,18 @@ func (dbs *DBStorage) New(p ...string) error {
 
 	//Создаем таблицу в базе если ее еще нет
 	sql := `CREATE TABLE IF NOT EXISTS public.metrics
-(
-    name text COLLATE pg_catalog."default" NOT NULL,
-    type text COLLATE pg_catalog."default" NOT NULL,
-    gauge double precision,
-    counter bigint,
-    CONSTRAINT metrics_pkey PRIMARY KEY (name, type)
-)
+		(
+			name text COLLATE pg_catalog."default" NOT NULL,
+			type text COLLATE pg_catalog."default" NOT NULL,
+			gauge double precision,
+			counter bigint,
+			CONSTRAINT metrics_pkey PRIMARY KEY (name, type)
+		)
+		TABLESPACE pg_default;
 
-TABLESPACE pg_default;
-
-ALTER TABLE IF EXISTS public.metrics
-    OWNER to postgres;`
-
+		ALTER TABLE IF EXISTS public.metrics
+			OWNER to postgres;
+	`
 	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
 	defer cancel()
 
@@ -86,7 +85,6 @@ func (dbs *DBStorage) CheckStorage() error {
 }
 
 func (dbs *DBStorage) Write(m *metric.Metric) error {
-
 	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
 	defer cancel()
 
@@ -107,7 +105,7 @@ func (dbs *DBStorage) Write(m *metric.Metric) error {
 	)
 
 	if err != nil {
-		return err
+		return fmt.Errorf("db write error: %W", err)
 	}
 	return nil
 }
@@ -128,7 +126,7 @@ func (dbs *DBStorage) WriteAll(mm *([]metric.Metric)) (int, error) {
 
 	tx, err := dbs.DB.BeginTx(ctx, nil)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("db tx open error: %w", err)
 	}
 	// defer tx.Rollback()
 
@@ -141,13 +139,13 @@ func (dbs *DBStorage) WriteAll(mm *([]metric.Metric)) (int, error) {
 		)
 		if err != nil {
 			tx.Rollback()
-			return 0, err
+			return 0, fmt.Errorf("db insert error: %W", err)
 		}
 		cnt++
 	}
 	err = tx.Commit()
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("db tx commit error: %w", err)
 	}
 
 	return cnt, nil
@@ -168,7 +166,7 @@ func (dbs *DBStorage) Read(m *metric.Metric) error {
 	row := dbs.DB.QueryRowContext(ctx, sql, m.Name, m.Type)
 
 	if err := row.Scan(&m.Name, &m.Type, &m.Gauge, &m.Counter); err != nil {
-		return err
+		return fmt.Errorf("db read error: %w", err)
 	}
 	return nil
 }
@@ -186,7 +184,7 @@ func (dbs *DBStorage) ReadAll(mm *([]metric.Metric)) (int, error) {
 		, counter 
 	from metrics `)
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("db select error: %w", err)
 	}
 	defer rows.Close()
 
@@ -195,7 +193,7 @@ func (dbs *DBStorage) ReadAll(mm *([]metric.Metric)) (int, error) {
 	for rows.Next() {
 		m := metric.Metric{}
 		if err := rows.Scan(&m.Name, &m.Type, &m.Gauge, &m.Counter); err != nil {
-			return cnt, fmt.Errorf("could not scan row: %v", err)
+			return cnt, fmt.Errorf("db scan row error: %w", err)
 		} else {
 			*mm = append(*mm, m)
 		}
@@ -204,9 +202,8 @@ func (dbs *DBStorage) ReadAll(mm *([]metric.Metric)) (int, error) {
 	//Проверяем на ошибки в процессе чтения
 	err = rows.Err()
 	if err != nil {
-		return cnt, fmt.Errorf("error during reading data: %v", err)
+		return cnt, fmt.Errorf("error during reading data: %w", err)
 	}
-
 	return cnt, nil
 }
 
@@ -217,7 +214,7 @@ func (dbs *DBStorage) Truncate() error {
 	sql := `truncate table metrics`
 	_, err := dbs.DB.ExecContext(ctx, sql)
 	if err != nil {
-		return err
+		return fmt.Errorf("db truncate error: %w", err)
 	}
 	return nil
 }

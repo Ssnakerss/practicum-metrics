@@ -16,7 +16,7 @@ import (
 // Возвращаем список метрик
 func (da *Adapter) MainPage(w http.ResponseWriter, r *http.Request) {
 	mcs := make([]metric.Metric, 0)
-	_, err := da.Ds.ReadAll(&mcs)
+	err := da.ReadAll(&mcs)
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -166,7 +166,7 @@ func (da *Adapter) GetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	//Selecting metrics from storage
-	if err := da.Ds.Read(&m); err != nil {
+	if err := da.Read(&m); err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}

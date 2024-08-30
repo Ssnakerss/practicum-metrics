@@ -12,15 +12,6 @@ import (
 )
 
 func ReportMetrics(mm map[string]metric.Metric, serverAddr string) error {
-	//Старый формат передачи по одной метрике
-	// for _, m := range mm {
-	// 	err := SendMetricJSON(m, serverAddr)
-	// 	if err != nil {
-	// 		log.Printf("error happened while sending %v: %s \r\n", m, err)
-	// 		return err
-	// 	}
-	// }
-
 	//Проверяем есть ли данные для отравки
 	if len(mm) > 0 {
 		//Отправляем метрики батчами

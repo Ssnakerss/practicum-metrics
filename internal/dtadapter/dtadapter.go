@@ -2,6 +2,7 @@ package dtadapter
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,6 +10,8 @@ import (
 	"time"
 
 	"github.com/Ssnakerss/practicum-metrics/internal/compression"
+	"github.com/Ssnakerss/practicum-metrics/internal/flags"
+	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 	"github.com/Ssnakerss/practicum-metrics/internal/storage"
 )
@@ -23,6 +26,44 @@ func (da *Adapter) New(ds storage.DataStorage) {
 	da.Ds = ds
 	da.syncMode = false
 	da.SyncStorage = nil
+}
+
+// Функция вызывающая запись/чтение метрики повторно  при возникновении ошибок
+func execRWWtihRetry(f func(*metric.Metric) error, m *metric.Metric) error {
+	err := errors.New("trying to exec")
+	retry := 0
+	//Отправляем метрики
+	//При ошибке -  пробуем еще раз с задежкой
+	for err != nil {
+		logger.Log.Info("call to db read-write")
+		time.Sleep(time.Duration(flags.RetryIntervals[retry]) * time.Second)
+		err = f(m)
+		if err == nil || retry == len(flags.RetryIntervals)-1 {
+			break
+		}
+		retry++
+		logger.SLog.Warnf("error reporting, retry in %d seconds", flags.RetryIntervals[retry])
+	}
+	return err
+}
+
+func execRWAllWtihRetry(f func(*[]metric.Metric) (int, error), m *[]metric.Metric) (int, error) {
+	err := errors.New("trying to exec")
+	cnt := 0
+	retry := 0
+	//Отправляем метрики
+	//При ошибке -  пробуем еще раз с задежкой
+	for err != nil {
+		logger.Log.Info("call to db read-write")
+		time.Sleep(time.Duration(flags.RetryIntervals[retry]) * time.Second)
+		cnt, err = f(m)
+		if err == nil || retry == len(flags.RetryIntervals)-1 {
+			break
+		}
+		retry++
+		logger.SLog.Warnf("error reporting, retry in %d seconds", flags.RetryIntervals[retry])
+	}
+	return cnt, err
 }
 
 // Пишем в хранилище
@@ -41,8 +82,13 @@ func (da *Adapter) Write(m *metric.Metric) error {
 }
 
 func (da *Adapter) WriteAll(mm *[]metric.Metric) error {
-	if _, err := da.Ds.WriteAll(mm); err != nil {
-		return err
+	// if _, err := da.Ds.WriteAll(mm); err != nil {
+	//Вызов записи в базу через ф-ю с повторами при ошибках
+	if _, err := execRWAllWtihRetry(da.Ds.WriteAll, mm); err != nil {
+		///////////////////////////////////////////////
+		errr := fmt.Errorf("data adapter err: %w", err)
+		logger.SLog.Error(errr)
+		return errr
 	}
 	//Пишем во второе хранилище если включена синхронная запись
 	if da.syncMode {
@@ -51,6 +97,15 @@ func (da *Adapter) WriteAll(mm *[]metric.Metric) error {
 		}
 	}
 	return nil
+}
+
+func (da *Adapter) Read(m *metric.Metric) error {
+	return da.Ds.Read(m)
+}
+
+func (da *Adapter) ReadAll(mm *[]metric.Metric) error {
+	_, err := da.Ds.ReadAll(mm)
+	return err
 }
 
 // Синхронизация записи
