@@ -86,7 +86,6 @@ func main() {
 	if filest != nil {
 		//Добавляем хранилище и включаем синхронизацию
 		//0 - пишем в оба сразе, > 0 - по расписанию
-		// filest.Truncate()
 		da.Sync(flags.Cfg.StoreInterval, filest)
 		logger.SLog.Infow("using a sync storage", "file", filest.Filename)
 	}

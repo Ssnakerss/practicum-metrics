@@ -99,7 +99,7 @@ func (da *Adapter) SetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 	//Возвращаем метрику из хранилища с обновленным Value
 	mj, err := da.readMetricAndMarshal(m)
 	if err != nil {
-		logger.SLog.Errorw("", err)
+		logger.SLog.Warnw("SetDataJSONHandler", err)
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
@@ -120,7 +120,7 @@ func (da *Adapter) GetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 	//Возвращаем метрику из хранилища с обновленным Value
 	mj, err := da.readMetricAndMarshal(m)
 	if err != nil {
-		logger.SLog.Errorw("", err)
+		logger.SLog.Warnw("GetDataJSONHandler", err)
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}

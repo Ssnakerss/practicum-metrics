@@ -3,11 +3,14 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
 
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
+	"github.com/jackc/pgerrcode"
+	"github.com/jackc/pgx/v5/pgconn"
 	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
@@ -17,10 +20,29 @@ type DBStorage struct {
 	DB      *sql.DB
 }
 
+// Выбираем тип результирующей ошибки ошибки для методов пакета DB Storage
+func errSelect(ctx context.Context, method string, err error) error {
+	if err != nil {
+		var pgerr *pgconn.PgError
+		if errors.As(err, &pgerr) {
+			//Если ишибка соединения - формируем специальную ошибку - будем использовать при повторных попытках соединения
+			if pgerrcode.IsConnectionException(pgerr.SQLState()) {
+				return NewStorageError("db", method, ConnectionError, err)
+			}
+		}
+		return NewStorageError("db", method, 99, err)
+	}
+	//Проверяем была ли операция отменена по таймауту
+	if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+		return NewStorageError("db", method, 13, ctx.Err())
+	}
+	return nil
+}
+
 // TODO добавить создание таблицы
 func (dbs *DBStorage) New(p ...string) error {
 	if len(p) < 2 {
-		return fmt.Errorf("specify dsn and connection timeout")
+		return errSelect(context.TODO(), "init", fmt.Errorf("specify dsn and connection timeout"))
 	}
 
 	dbs.dsn = p[0]
@@ -28,18 +50,20 @@ func (dbs *DBStorage) New(p ...string) error {
 	var i int
 
 	if i, err = strconv.Atoi(p[1]); err != nil {
-		return fmt.Errorf("timeout value %s convertion error %w ", p[1], err)
+		return errSelect(context.TODO(), "init", fmt.Errorf("timeout value %s convertion error %w ", p[1], err))
 	}
 	dbs.timeout = time.Duration(i)
 	//Открываем коннект
 	dbs.DB, err = sql.Open("pgx", dbs.dsn)
+
 	if err != nil {
-		return err
+		return errSelect(context.TODO(), "conn", fmt.Errorf("connection open error: %w", err))
 	}
+
 	//Проверям коннект
 	if err = dbs.CheckStorage(); err != nil {
 		dbs.Close()
-		return fmt.Errorf("db connection failure: %w", err)
+		return errSelect(context.TODO(), "conn", fmt.Errorf("connection checking failure: %w", err))
 	}
 
 	//Создаем таблицу в базе если ее еще нет
@@ -62,10 +86,9 @@ func (dbs *DBStorage) New(p ...string) error {
 	_, err = dbs.DB.ExecContext(ctx, sql)
 	if err != nil {
 		dbs.Close()
-		return fmt.Errorf("db table creation failure: %w", err)
 	}
 
-	return nil
+	return errSelect(ctx, "tbcreate", err)
 }
 
 // Закрываем соединение с базой
@@ -78,10 +101,9 @@ func (dbs *DBStorage) CheckStorage() error {
 	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
 	defer cancel()
 
-	if err := dbs.DB.PingContext(ctx); err != nil {
-		return err
-	}
-	return nil
+	err := dbs.DB.PingContext(ctx)
+
+	return errSelect(ctx, "ping", err)
 }
 
 func (dbs *DBStorage) Write(m *metric.Metric) error {
@@ -104,10 +126,7 @@ func (dbs *DBStorage) Write(m *metric.Metric) error {
 		m.Counter,
 	)
 
-	if err != nil {
-		return fmt.Errorf("db write error: %W", err)
-	}
-	return nil
+	return errSelect(ctx, "WRITE", err)
 }
 
 // Сохраняем в базу [] метрик
@@ -126,9 +145,8 @@ func (dbs *DBStorage) WriteAll(mm *([]metric.Metric)) (int, error) {
 
 	tx, err := dbs.DB.BeginTx(ctx, nil)
 	if err != nil {
-		return 0, fmt.Errorf("db tx open error: %w", err)
+		return 0, errSelect(ctx, "begintx", fmt.Errorf("db tx open error: %w", err))
 	}
-	// defer tx.Rollback()
 
 	for _, m := range *mm {
 		_, err := tx.Exec(sql,
@@ -139,17 +157,13 @@ func (dbs *DBStorage) WriteAll(mm *([]metric.Metric)) (int, error) {
 		)
 		if err != nil {
 			tx.Rollback()
-			return 0, fmt.Errorf("db insert error: %W", err)
+			return 0, errSelect(ctx, "insert", fmt.Errorf("db insert error: %W", err))
 		}
 		cnt++
 	}
 	err = tx.Commit()
-	if err != nil {
-		return 0, fmt.Errorf("db tx commit error: %w", err)
-	}
 
-	return cnt, nil
-
+	return cnt, errSelect(ctx, "WRITEALL", err)
 }
 
 func (dbs *DBStorage) Read(m *metric.Metric) error {
@@ -164,11 +178,9 @@ func (dbs *DBStorage) Read(m *metric.Metric) error {
 	from metrics 
 	where  name = $1 and type = $2`
 	row := dbs.DB.QueryRowContext(ctx, sql, m.Name, m.Type)
+	err := row.Scan(&m.Name, &m.Type, &m.Gauge, &m.Counter)
 
-	if err := row.Scan(&m.Name, &m.Type, &m.Gauge, &m.Counter); err != nil {
-		return fmt.Errorf("db read error: %w", err)
-	}
-	return nil
+	return errSelect(ctx, "READ", err)
 }
 
 //Читаем из базы массив метрик
@@ -184,7 +196,7 @@ func (dbs *DBStorage) ReadAll(mm *([]metric.Metric)) (int, error) {
 		, counter 
 	from metrics `)
 	if err != nil {
-		return 0, fmt.Errorf("db select error: %w", err)
+		return 0, errSelect(ctx, "select", fmt.Errorf("db select error: %w", err))
 	}
 	defer rows.Close()
 
@@ -193,7 +205,7 @@ func (dbs *DBStorage) ReadAll(mm *([]metric.Metric)) (int, error) {
 	for rows.Next() {
 		m := metric.Metric{}
 		if err := rows.Scan(&m.Name, &m.Type, &m.Gauge, &m.Counter); err != nil {
-			return cnt, fmt.Errorf("db scan row error: %w", err)
+			return cnt, errSelect(ctx, "scan", fmt.Errorf("db scan row error: %w", err))
 		} else {
 			*mm = append(*mm, m)
 		}
@@ -201,10 +213,8 @@ func (dbs *DBStorage) ReadAll(mm *([]metric.Metric)) (int, error) {
 	}
 	//Проверяем на ошибки в процессе чтения
 	err = rows.Err()
-	if err != nil {
-		return cnt, fmt.Errorf("error during reading data: %w", err)
-	}
-	return cnt, nil
+
+	return cnt, errSelect(ctx, "READALL", err)
 }
 
 func (dbs *DBStorage) Truncate() error {
@@ -213,8 +223,6 @@ func (dbs *DBStorage) Truncate() error {
 
 	sql := `truncate table metrics`
 	_, err := dbs.DB.ExecContext(ctx, sql)
-	if err != nil {
-		return fmt.Errorf("db truncate error: %w", err)
-	}
-	return nil
+
+	return errSelect(ctx, "TRUNCATE", err)
 }

@@ -33,17 +33,27 @@ func execRWWtihRetry(f func(*metric.Metric) error) func(*metric.Metric) error {
 	return func(m *metric.Metric) error {
 		err := errors.New("trying to exec")
 		retry := 0
-		//Отправляем метрики
-		//При ошибке -  пробуем еще раз с задежкой
+		var stErr *storage.StorageError
+		//При ошибке подключения  -  пробуем еще раз с задежкой
 		for err != nil {
-			logger.Log.Info("call to db read-write")
+			logger.Log.Info("call read")
 			time.Sleep(time.Duration(flags.RetryIntervals[retry]) * time.Second)
+			//Вызываем основной метод
 			err = f(m)
-			if err == nil || retry == len(flags.RetryIntervals)-1 {
+			//Выходим если нет ошибки или закончился лимит попыток или ошибка не приводится к типу StorageError
+			if err == nil ||
+				retry == len(flags.RetryIntervals)-1 ||
+				!errors.As(err, &stErr) {
 				break
 			}
+			//Если ошибка не связана с подключение к хранилищу -  тоже выходим
+			if stErr.ErrCode != storage.ConnectionError {
+				break
+			}
+
 			retry++
-			logger.SLog.Warnf("error reporting, retry in %d seconds", flags.RetryIntervals[retry])
+			fmt.Printf("%v\n", err)
+			logger.SLog.Warnf("%v, retry in %d seconds", err, flags.RetryIntervals[retry])
 		}
 		return err
 	}
@@ -53,19 +63,28 @@ func execRWWtihRetry(f func(*metric.Metric) error) func(*metric.Metric) error {
 func execRWAllWtihRetry(f func(*[]metric.Metric) (int, error)) func(*[]metric.Metric) (int, error) {
 	return func(m *[]metric.Metric) (int, error) {
 		err := errors.New("trying to exec")
-		cnt := 0
 		retry := 0
-		//Отправляем метрики
-		//При ошибке -  пробуем еще раз с задежкой
+		cnt := 0
+		var stErr *storage.StorageError
+		//При ошибке подключения  -  пробуем еще раз с задежкой
 		for err != nil {
-			logger.Log.Info("call to db read-write")
+			logger.Log.Info("call read")
 			time.Sleep(time.Duration(flags.RetryIntervals[retry]) * time.Second)
+			//Вызываем основной метод
 			cnt, err = f(m)
-			if err == nil || retry == len(flags.RetryIntervals)-1 {
+			//Выходим если нет ошибки или закончился лимит попыток или ошибка не приводится к типу StorageError
+			if err == nil ||
+				retry == len(flags.RetryIntervals)-1 ||
+				!errors.As(err, &stErr) {
+				break
+			}
+			//Если ошибка не связана с подключение к хранилищу -  тоже выходим
+			if stErr.ErrCode != storage.ConnectionError {
 				break
 			}
 			retry++
-			logger.SLog.Warnf("error reporting, retry in %d seconds", flags.RetryIntervals[retry])
+			fmt.Printf("%v\n", err)
+			logger.SLog.Warnf("%v, retry in %d seconds", err, flags.RetryIntervals[retry])
 		}
 		return cnt, err
 	}
@@ -76,7 +95,6 @@ func execRWAllWtihRetry(f func(*[]metric.Metric) (int, error)) func(*[]metric.Me
 func (da *Adapter) Write(m *metric.Metric) error {
 	//Вызов записи в базу через ф-ю с повторами при ошибках
 	err := execRWWtihRetry(da.Ds.Write)(m)
-	// err := da.Ds.Write(m)
 	if err != nil {
 		return err
 	}
@@ -91,7 +109,6 @@ func (da *Adapter) Write(m *metric.Metric) error {
 func (da *Adapter) WriteAll(mm *[]metric.Metric) error {
 	//Вызов записи в базу через ф-ю с повторами при ошибках
 	if _, err := execRWAllWtihRetry(da.Ds.WriteAll)(mm); err != nil {
-		// if _, err := da.Ds.WriteAll(mm); err != nil {
 		errr := fmt.Errorf("data adapter err: %w", err)
 		logger.SLog.Error(errr)
 		return errr
@@ -106,11 +123,11 @@ func (da *Adapter) WriteAll(mm *[]metric.Metric) error {
 }
 
 func (da *Adapter) Read(m *metric.Metric) error {
-	return da.Ds.Read(m)
+	return execRWWtihRetry(da.Ds.Read)(m)
 }
 
 func (da *Adapter) ReadAll(mm *[]metric.Metric) error {
-	_, err := da.Ds.ReadAll(mm)
+	_, err := execRWAllWtihRetry(da.Ds.ReadAll)(mm)
 	return err
 }
 
@@ -154,7 +171,7 @@ func (da *Adapter) CopyState(src storage.DataStorage, dst storage.DataStorage) e
 
 // Read metric and convert to data interface type
 func (da *Adapter) readMetricAndMarshal(m *metric.Metric) ([]byte, error) {
-	err := da.Ds.Read(m)
+	err := da.Read(m)
 	if err != nil {
 		return nil, fmt.Errorf("fail to read metric: %w", err)
 	}
