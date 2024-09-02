@@ -94,8 +94,8 @@ func execRWAllWtihRetry(f func(*[]metric.Metric) (int, error)) func(*[]metric.Me
 // Если интервал синхронизации == 0 - пишем сразу и во второе
 func (da *Adapter) Write(m *metric.Metric) error {
 	//Вызов записи в базу через ф-ю с повторами при ошибках
-	err := execRWWtihRetry(da.Ds.Write)(m)
-	// err := da.Ds.Write(m)
+	// err := execRWWtihRetry(da.Ds.Write)(m)
+	err := da.Ds.Write(m)
 	if err != nil {
 		return err
 	}
@@ -109,8 +109,8 @@ func (da *Adapter) Write(m *metric.Metric) error {
 
 func (da *Adapter) WriteAll(mm *[]metric.Metric) error {
 	//Вызов записи в базу через ф-ю с повторами при ошибках
-	if _, err := execRWAllWtihRetry(da.Ds.WriteAll)(mm); err != nil {
-		// if _, err := da.Ds.WriteAll(mm); err != nil {
+	// if _, err := execRWAllWtihRetry(da.Ds.WriteAll)(mm); err != nil {
+	if _, err := da.Ds.WriteAll(mm); err != nil {
 		errr := fmt.Errorf("data adapter err: %w", err)
 		logger.SLog.Error(errr)
 		return errr
