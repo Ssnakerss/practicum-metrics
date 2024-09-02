@@ -41,16 +41,16 @@ func ReadServerConfig() error {
 	flag.UintVar(&Cfg.StoreInterval, "i", 300, "data store interval, sec")
 
 	//Флаг -f=<ЗНАЧЕНИЕ> путь до файла, куда сохраняются текущие значения.
-	flag.StringVar(&Cfg.FileStoragePath, "f", `d:\temp\filest.txt`, "file storage path")
-	//flag.StringVar(&Cfg.FileStoragePath, "f", `default`, "file storage path")
+	// flag.StringVar(&Cfg.FileStoragePath, "f", `d:\temp\filest.txt`, "file storage path")
+	flag.StringVar(&Cfg.FileStoragePath, "f", `default`, "file storage path")
 
 	//Флаг -r=<ЗНАЧЕНИЕ>  булево значение (true/false), определяющее, загружать или нет ранее
 	//сохранённые значения из указанного файла при старте сервера (по умолчанию true)
 	flag.BoolVar(&Cfg.Restore, "r", true, "restore data on startup")
 
 	//Флаг -d=<значение> -  адрес подключения к БД / string
-	flag.StringVar(&Cfg.DatabaseDSN, "d", `postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable`, "database dsn adress")
-	//flag.StringVar(&Cfg.DatabaseDSN, "d", `default`, "database dsn adress")
+	// flag.StringVar(&Cfg.DatabaseDSN, "d", `postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable`, "database dsn adress")
+	flag.StringVar(&Cfg.DatabaseDSN, "d", `default`, "database dsn adress")
 
 	flag.Parse()
 	//Читаем переменные среды и если есть -  перезаписываем параметра ком строки или дефолты

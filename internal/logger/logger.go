@@ -20,8 +20,8 @@ func Initialize(level string) error {
 		return err
 	}
 	// создаём новую конфигурацию логера
-	// cfg := zap.NewProductionConfig()
-	cfg := zap.NewDevelopmentConfig()
+	cfg := zap.NewProductionConfig()
+	// cfg := zap.NewDevelopmentConfig()
 	// устанавливаем уровень
 	cfg.Level = lvl
 	// создаём логер на основе конфигурации

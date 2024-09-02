@@ -28,48 +28,55 @@ func (da *Adapter) New(ds storage.DataStorage) {
 	da.SyncStorage = nil
 }
 
-// Функция вызывающая запись/чтение метрики повторно  при возникновении ошибок
-func execRWWtihRetry(f func(*metric.Metric) error, m *metric.Metric) error {
-	err := errors.New("trying to exec")
-	retry := 0
-	//Отправляем метрики
-	//При ошибке -  пробуем еще раз с задежкой
-	for err != nil {
-		logger.Log.Info("call to db read-write")
-		time.Sleep(time.Duration(flags.RetryIntervals[retry]) * time.Second)
-		err = f(m)
-		if err == nil || retry == len(flags.RetryIntervals)-1 {
-			break
+// Функция-обертка для  повторного вызова при возникновении ошибок
+func execRWWtihRetry(f func(*metric.Metric) error) func(*metric.Metric) error {
+	return func(m *metric.Metric) error {
+		err := errors.New("trying to exec")
+		retry := 0
+		//Отправляем метрики
+		//При ошибке -  пробуем еще раз с задежкой
+		for err != nil {
+			logger.Log.Info("call to db read-write")
+			time.Sleep(time.Duration(flags.RetryIntervals[retry]) * time.Second)
+			err = f(m)
+			if err == nil || retry == len(flags.RetryIntervals)-1 {
+				break
+			}
+			retry++
+			logger.SLog.Warnf("error reporting, retry in %d seconds", flags.RetryIntervals[retry])
 		}
-		retry++
-		logger.SLog.Warnf("error reporting, retry in %d seconds", flags.RetryIntervals[retry])
+		return err
 	}
-	return err
 }
 
-func execRWAllWtihRetry(f func(*[]metric.Metric) (int, error), m *[]metric.Metric) (int, error) {
-	err := errors.New("trying to exec")
-	cnt := 0
-	retry := 0
-	//Отправляем метрики
-	//При ошибке -  пробуем еще раз с задежкой
-	for err != nil {
-		logger.Log.Info("call to db read-write")
-		time.Sleep(time.Duration(flags.RetryIntervals[retry]) * time.Second)
-		cnt, err = f(m)
-		if err == nil || retry == len(flags.RetryIntervals)-1 {
-			break
+// Функция-обертка для  повторного вызова при возникновении ошибок
+func execRWAllWtihRetry(f func(*[]metric.Metric) (int, error)) func(*[]metric.Metric) (int, error) {
+	return func(m *[]metric.Metric) (int, error) {
+		err := errors.New("trying to exec")
+		cnt := 0
+		retry := 0
+		//Отправляем метрики
+		//При ошибке -  пробуем еще раз с задежкой
+		for err != nil {
+			logger.Log.Info("call to db read-write")
+			time.Sleep(time.Duration(flags.RetryIntervals[retry]) * time.Second)
+			cnt, err = f(m)
+			if err == nil || retry == len(flags.RetryIntervals)-1 {
+				break
+			}
+			retry++
+			logger.SLog.Warnf("error reporting, retry in %d seconds", flags.RetryIntervals[retry])
 		}
-		retry++
-		logger.SLog.Warnf("error reporting, retry in %d seconds", flags.RetryIntervals[retry])
+		return cnt, err
 	}
-	return cnt, err
 }
 
 // Пишем в хранилище
 // Если интервал синхронизации == 0 - пишем сразу и во второе
 func (da *Adapter) Write(m *metric.Metric) error {
-	err := da.Ds.Write(m)
+	//Вызов записи в базу через ф-ю с повторами при ошибках
+	err := execRWWtihRetry(da.Ds.Write)(m)
+	// err := da.Ds.Write(m)
 	if err != nil {
 		return err
 	}
@@ -82,10 +89,9 @@ func (da *Adapter) Write(m *metric.Metric) error {
 }
 
 func (da *Adapter) WriteAll(mm *[]metric.Metric) error {
-	// if _, err := da.Ds.WriteAll(mm); err != nil {
 	//Вызов записи в базу через ф-ю с повторами при ошибках
-	if _, err := execRWAllWtihRetry(da.Ds.WriteAll, mm); err != nil {
-		///////////////////////////////////////////////
+	if _, err := execRWAllWtihRetry(da.Ds.WriteAll)(mm); err != nil {
+		// if _, err := da.Ds.WriteAll(mm); err != nil {
 		errr := fmt.Errorf("data adapter err: %w", err)
 		logger.SLog.Error(errr)
 		return errr
