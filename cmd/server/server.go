@@ -49,7 +49,7 @@ func main() {
 	if flags.Cfg.DatabaseDSN != "default" {
 		st = &storage.DBStorage{}
 		//Ставим таймаут 60 секунд
-		if err := st.New(flags.Cfg.DatabaseDSN, "60"); err != nil {
+		if err := st.New(flags.Cfg.DatabaseDSN, "120"); err != nil {
 			logger.SLog.Fatalf(
 				"error initialize db -> program will exit",
 				"dsn", flags.Cfg.DatabaseDSN,
