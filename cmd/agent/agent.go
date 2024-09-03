@@ -12,6 +12,7 @@ import (
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 	"github.com/Ssnakerss/practicum-metrics/internal/report"
+	"github.com/Ssnakerss/practicum-metrics/internal/storage"
 )
 
 func main() {
@@ -27,7 +28,10 @@ func main() {
 		logger.SLog.Warnw("error getting env params", "error", err)
 	}
 
-	gatheredMetrics := make(map[string]metric.Metric)
+	//хранилище собранных  метрик
+	var metricsStorage storage.MemStorage
+	metricsStorage.New()
+
 	pollTimeTicker := time.NewTicker(time.Duration(flags.Cfg.PollInterval) * time.Second)
 	reportTimeTicker := time.NewTicker(time.Duration(flags.Cfg.ReportInterval) * time.Second)
 
@@ -36,22 +40,30 @@ func main() {
 		"endpoint address", flags.Cfg.EndPointAddress)
 
 	go func() {
-		cnt := 0
+		pollCount := 0
 		for range pollTimeTicker.C {
 			//Собираем метрики
+			//делаем новый слайс для метрик
+			metricsGathered := make([]metric.Metric, 0)
 			//MemStat metric - получаем из runtime.MemStats
 			logger.SLog.Info("Gathering MemStatsMetrics")
-			if err := metric.PollMemStatsMetrics(metric.MemStatsMetrics, gatheredMetrics); err != nil {
+			if err := metric.PollMemStatsMetrics(metric.MemStatsMetrics, &metricsGathered); err != nil {
 				logger.SLog.Errorw("polling metrics", "erorr", err)
 			}
 			// Кастомные метрики -  получаем вызывая функции из определения метрики
 			logger.SLog.Info("Gathering ExtraMetrics")
 			for n, p := range metric.ExtraMetrics {
 				var m metric.Metric
-				m.Set(n, p.MFunc(cnt), p.MType)
-				gatheredMetrics[n] = m
+				m.Set(n, p.MFunc(pollCount), p.MType)
+				metricsGathered = append(metricsGathered, m)
 			}
-			cnt++
+
+			//сохраним собраные метрики в хранилще
+			metricsStorage.WriteAll(&metricsGathered)
+
+			//очищаем слайс
+			metricsGathered = nil
+			pollCount++
 		}
 	}()
 
@@ -59,16 +71,19 @@ func main() {
 		for range reportTimeTicker.C {
 			err := errors.New("trying to send")
 			retry := 0
+			//Тормозим тикеры на время передачи данных
+			pollTimeTicker.Stop()
+			reportTimeTicker.Stop()
+			//читам метрики из хранилища для передачи
+			metricsToSend := make([]metric.Metric, 0)
+			metricsStorage.ReadAll(&metricsToSend)
+
 			//Отправляем метрики
 			//При ошибке -  пробуем еще раз с задежкой
 			for err != nil {
-				//Тормозим тикеры на время передачи данных
-				pollTimeTicker.Stop()
-				reportTimeTicker.Stop()
-
 				logger.Log.Info("reporting metric")
 				time.Sleep(time.Duration(flags.RetryIntervals[retry]) * time.Second)
-				err = report.ReportMetrics(gatheredMetrics, flags.Cfg.EndPointAddress)
+				err = report.ReportMetrics(metricsToSend, flags.Cfg.EndPointAddress)
 				if err == nil || retry == len(flags.RetryIntervals)-1 {
 					break
 				}
@@ -78,7 +93,12 @@ func main() {
 			}
 			if err != nil {
 				logger.SLog.Errorw("error reporting", "err", err)
+			} else {
+				logger.SLog.Infof("reported %d metrics", len(metricsToSend))
 			}
+
+			//очищаем мапу передачи
+			metricsToSend = nil
 
 			//Запускаем таймеры снова
 			reportTimeTicker.Reset(time.Duration(flags.Cfg.ReportInterval) * time.Second)

@@ -7,7 +7,7 @@ import (
 )
 
 func PollMemStatsMetrics(metricsToGather []string,
-	result map[string]Metric) error {
+	result *[]Metric) error {
 
 	var memoryStat runtime.MemStats
 	runtime.ReadMemStats(&memoryStat)
@@ -26,7 +26,7 @@ func PollMemStatsMetrics(metricsToGather []string,
 		//----------------------------
 		var m Metric
 		m.Set(name, value, "gauge")
-		result[name] = m
+		*result = append((*result), m)
 		idx++
 	}
 	if idx == 0 {

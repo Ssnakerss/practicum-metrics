@@ -2,11 +2,14 @@ package storage
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 )
 
 type MemStorage struct {
+	//Сделаем мемстор потокобезопасным - добавим мютексы
+	mx sync.Mutex
 	// DataStorage
 	metrics map[string]*metric.Metric
 }
@@ -18,6 +21,9 @@ func (memst *MemStorage) New(p ...string) error {
 }
 
 func (memst *MemStorage) Write(m *metric.Metric) error {
+	memst.mx.Lock()
+	defer memst.mx.Unlock()
+
 	if v, ok := memst.metrics[m.Name+m.Type]; ok {
 		v.Counter += m.Counter
 		v.Gauge = m.Gauge
@@ -41,6 +47,9 @@ func (memst *MemStorage) WriteAll(mm *([]metric.Metric)) (int, error) {
 }
 
 func (memst *MemStorage) Read(m *metric.Metric) error {
+	memst.mx.Lock()
+	defer memst.mx.Unlock()
+
 	if sm, ok := memst.metrics[m.Name+m.Type]; ok {
 		m.Gauge = sm.Gauge
 		m.Counter = sm.Counter
@@ -50,6 +59,9 @@ func (memst *MemStorage) Read(m *metric.Metric) error {
 }
 
 func (memst *MemStorage) ReadAll(mm *([]metric.Metric)) (int, error) {
+	memst.mx.Lock()
+	defer memst.mx.Unlock()
+
 	cnt := 0
 	for _, m := range memst.metrics {
 		*mm = append(*mm, *m)
@@ -59,6 +71,9 @@ func (memst *MemStorage) ReadAll(mm *([]metric.Metric)) (int, error) {
 }
 
 func (memst *MemStorage) Truncate() error {
+	memst.mx.Lock()
+	defer memst.mx.Unlock()
+
 	//Чистим мапу путем создания новой
 	memst.metrics = make(map[string]*metric.Metric)
 	return nil

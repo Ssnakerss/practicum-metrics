@@ -11,7 +11,7 @@ import (
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 )
 
-func ReportMetrics(mm map[string]metric.Metric, serverAddr string) error {
+func ReportMetrics(mm []metric.Metric, serverAddr string) error {
 	//Проверяем есть ли данные для отравки
 	if len(mm) > 0 {
 		//Отправляем метрики батчами
@@ -60,7 +60,7 @@ func SendMetricJSON(m metric.Metric, serverAddr string) error {
 }
 
 // Для отправки метрик в формате JSON батчами
-func SendMetricJSONSlice(mm map[string]metric.Metric, serverAddr string) error {
+func SendMetricJSONSlice(mm []metric.Metric, serverAddr string) error {
 	url := "http://" + serverAddr + "/updates/"
 	mcsj := make([]metric.MetricJSON, 0)
 
