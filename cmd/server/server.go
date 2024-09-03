@@ -84,6 +84,8 @@ func main() {
 
 	da.New(st)
 	if filest != nil {
+		//Очищаем второе хранилище перед записью
+		filest.Truncate()
 		//Добавляем хранилище и включаем синхронизацию
 		//0 - пишем в оба сразе, > 0 - по расписанию
 		da.Sync(flags.Cfg.StoreInterval, filest)
