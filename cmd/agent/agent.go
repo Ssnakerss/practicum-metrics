@@ -72,8 +72,8 @@ func main() {
 			err := errors.New("trying to send")
 			retry := 0
 			//Тормозим тикеры на время передачи данных
-			pollTimeTicker.Stop()
-			reportTimeTicker.Stop()
+			// pollTimeTicker.Stop()
+			// reportTimeTicker.Stop()
 			//читам метрики из хранилища для передачи
 			metricsToSend := make([]metric.Metric, 0)
 			metricsStorage.ReadAll(&metricsToSend)
@@ -83,6 +83,7 @@ func main() {
 			for err != nil {
 				logger.Log.Info("reporting metric")
 				time.Sleep(time.Duration(flags.RetryIntervals[retry]) * time.Second)
+
 				err = report.ReportMetrics(metricsToSend, flags.Cfg.EndPointAddress)
 				if err == nil || retry == len(flags.RetryIntervals)-1 {
 					break
@@ -101,8 +102,8 @@ func main() {
 			metricsToSend = nil
 
 			//Запускаем таймеры снова
-			reportTimeTicker.Reset(time.Duration(flags.Cfg.ReportInterval) * time.Second)
-			pollTimeTicker.Reset(time.Duration(flags.Cfg.PollInterval) * time.Second)
+			// reportTimeTicker.Reset(time.Duration(flags.Cfg.ReportInterval) * time.Second)
+			// pollTimeTicker.Reset(time.Duration(flags.Cfg.PollInterval) * time.Second)
 		}
 	}()
 

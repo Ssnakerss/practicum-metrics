@@ -15,13 +15,15 @@ type Config struct {
 	DatabaseDSN     string `env:"DATABASE_DSN"`
 	//Agent params
 	//REPORT_INTERVAL позволяет переопределять reportInterval.
-	//POLL_INTERVAL позволяет переопределять pollInterval.
 	ReportInterval int `env:"REPORT_INTERVAL"`
-	PollInterval   int `env:"POLL_INTERVAL"`
+	//POLL_INTERVAL позволяет переопределять pollInterval.
+	PollInterval int `env:"POLL_INTERVAL"`
 
-	//Common config value
+	//Ключи общие для сесрвера и клиента
 	//ADDRESS отвечает за адрес эндпоинта HTTP-сервера
 	EndPointAddress string `env:"ADDRESS"`
+	//Ключ для SHA256 хэширования
+	Key string `env:KEY`
 }
 
 var Cfg Config
@@ -34,6 +36,7 @@ func ReadServerConfig() error {
 
 	//Флаг -a=<ЗНАЧЕНИЕ> отвечает за адрес эндпоинта HTTP-сервера (по умолчанию localhost:8080)
 	flag.StringVar(&Cfg.EndPointAddress, "a", "localhost:8080", "endpoint address")
+	flag.StringVar(&Cfg.Key, "k", ``, "sha256 key")
 
 	//Server
 	//Флаг -i=<ЗНАЧЕНИЕ> интервал времени в секундах, по истечении которого текущие показания
@@ -61,6 +64,7 @@ func ReadServerConfig() error {
 func ReadAgentConfig() error {
 	//Флаг -a=<ЗНАЧЕНИЕ> отвечает за адрес эндпоинта HTTP-сервера (по умолчанию localhost:8080)
 	flag.StringVar(&Cfg.EndPointAddress, "a", "localhost:8080", "endpoint address")
+	flag.StringVar(&Cfg.Key, "k", ``, "sha256 key")
 
 	//Agent
 	//Флаг -r=<ЗНАЧЕНИЕ> позволяет переопределять reportInterval — частоту отправки метрик на сервер (по умолчанию 10 секунд).

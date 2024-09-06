@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Ssnakerss/practicum-metrics/internal/compression"
 	"github.com/Ssnakerss/practicum-metrics/internal/flags"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
@@ -27,6 +26,9 @@ func (da *Adapter) New(ds storage.DataStorage) {
 	da.syncMode = false
 	da.SyncStorage = nil
 }
+
+//TODO: переписать execRWWithRetry & execRWAllWithRetry в одну функцию
+//Заменить Read(m *metric.Metric) -> Read(mm *[]metric.Metric),  избавиться от ReadAll/WriteAll
 
 // Функция-обертка для  повторного вызова при возникновении ошибок
 func execRWWtihRetry(f func(*metric.Metric) error) func(*metric.Metric) error {
@@ -68,7 +70,6 @@ func execRWAllWtihRetry(f func(*[]metric.Metric) (int, error)) func(*[]metric.Me
 		var stErr *storage.StorageError
 		//При ошибке подключения  -  пробуем еще раз с задежкой
 		for err != nil {
-			logger.Log.Info("call read")
 			time.Sleep(time.Duration(flags.RetryIntervals[retry]) * time.Second)
 			//Вызываем основной метод
 			cnt, err = f(m)
@@ -198,12 +199,13 @@ func (da *Adapter) checkRequestAndGetMetric(r *http.Request) (*metric.Metric, er
 		return nil, fmt.Errorf("cannot read request body: %w", err)
 	}
 	//Decompression -> TODO: Change to MiddleWare
-	if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
-		body, err = compression.Decompress(body)
-		if err != nil {
-			return nil, fmt.Errorf("fail to un-gzip body %w", err)
-		}
-	}
+	// if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+	// 	body, err = compression.Decompress(body)
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("fail to un-gzip body %w", err)
+	// 	}
+	// }
+
 	var mi metric.MetricJSON
 	err = json.Unmarshal(body, &mi)
 	if err != nil {

@@ -23,7 +23,6 @@ type DataStorage interface {
 }
 
 // Описываем ошибку для типа storage в которую будем упаковывать специфические ошибки
-
 const (
 	ConnectionError uint = 10
 	TimeoutError    uint = 13

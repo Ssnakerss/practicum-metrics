@@ -39,7 +39,6 @@ func errSelect(ctx context.Context, method string, err error) error {
 	return nil
 }
 
-// TODO добавить создание таблицы
 func (dbs *DBStorage) New(p ...string) error {
 	if len(p) < 2 {
 		return errSelect(context.TODO(), "init", fmt.Errorf("specify dsn and connection timeout"))
