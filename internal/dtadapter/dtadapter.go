@@ -2,6 +2,7 @@ package dtadapter
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -9,44 +10,136 @@ import (
 	"time"
 
 	"github.com/Ssnakerss/practicum-metrics/internal/compression"
+	"github.com/Ssnakerss/practicum-metrics/internal/flags"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 	"github.com/Ssnakerss/practicum-metrics/internal/storage"
-	"github.com/go-chi/chi/v5"
 )
 
 type Adapter struct {
-	ds          storage.DataStorage
-	syncStorage storage.DataStorage
+	Ds          storage.DataStorage
+	SyncStorage storage.DataStorage
 	syncMode    bool
 }
 
 func (da *Adapter) New(ds storage.DataStorage) {
-	da.ds = ds
+	da.Ds = ds
 	da.syncMode = false
+	da.SyncStorage = nil
+}
+
+// Функция-обертка для  повторного вызова при возникновении ошибок
+func execRWWtihRetry(f func(*metric.Metric) error) func(*metric.Metric) error {
+	return func(m *metric.Metric) error {
+		err := errors.New("trying to exec")
+		retry := 0
+		var stErr *storage.StorageError
+		//При ошибке подключения  -  пробуем еще раз с задежкой
+		for err != nil {
+			logger.Log.Info("call read")
+			time.Sleep(time.Duration(flags.RetryIntervals[retry]) * time.Second)
+			//Вызываем основной метод
+			err = f(m)
+			//Выходим если нет ошибки или закончился лимит попыток или ошибка не приводится к типу StorageError
+			if err == nil ||
+				retry == len(flags.RetryIntervals)-1 ||
+				!errors.As(err, &stErr) {
+				break
+			}
+			//Если ошибка не связана с подключение к хранилищу -  тоже выходим
+			if stErr.ErrCode != storage.ConnectionError {
+				break
+			}
+
+			retry++
+			fmt.Printf("%v\n", err)
+			logger.SLog.Warnf("%v, retry in %d seconds", err, flags.RetryIntervals[retry])
+		}
+		return err
+	}
+}
+
+// Функция-обертка для  повторного вызова при возникновении ошибок
+func execRWAllWtihRetry(f func(*[]metric.Metric) (int, error)) func(*[]metric.Metric) (int, error) {
+	return func(m *[]metric.Metric) (int, error) {
+		err := errors.New("trying to exec")
+		retry := 0
+		cnt := 0
+		var stErr *storage.StorageError
+		//При ошибке подключения  -  пробуем еще раз с задежкой
+		for err != nil {
+			logger.Log.Info("call read")
+			time.Sleep(time.Duration(flags.RetryIntervals[retry]) * time.Second)
+			//Вызываем основной метод
+			cnt, err = f(m)
+			//Выходим если нет ошибки или закончился лимит попыток или ошибка не приводится к типу StorageError
+			if err == nil ||
+				retry == len(flags.RetryIntervals)-1 ||
+				!errors.As(err, &stErr) {
+				break
+			}
+			//Если ошибка не связана с подключение к хранилищу -  тоже выходим
+			if stErr.ErrCode != storage.ConnectionError {
+				break
+			}
+			retry++
+			fmt.Printf("%v\n", err)
+			logger.SLog.Warnf("%v, retry in %d seconds", err, flags.RetryIntervals[retry])
+		}
+		return cnt, err
+	}
 }
 
 // Пишем в хранилище
 // Если интервал синхронизации == 0 - пишем сразу и во второе
 func (da *Adapter) Write(m *metric.Metric) error {
-	err := da.ds.Write(m)
+	//Вызов записи в базу через ф-ю с повторами при ошибках
+	err := execRWWtihRetry(da.Ds.Write)(m)
+	// err := da.Ds.Write(m)
 	if err != nil {
 		return err
 	}
 	if da.syncMode {
-		err := da.syncStorage.Write(m)
-		if err != nil {
+		if err := da.SyncStorage.Write(m); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
+func (da *Adapter) WriteAll(mm *[]metric.Metric) error {
+	//Вызов записи в базу через ф-ю с повторами при ошибках
+	if _, err := execRWAllWtihRetry(da.Ds.WriteAll)(mm); err != nil {
+		// if _, err := da.Ds.WriteAll(mm); err != nil {
+		errr := fmt.Errorf("data adapter err: %w", err)
+		logger.SLog.Error(errr)
+		return errr
+	}
+	//Пишем во второе хранилище если включена синхронная запись
+	if da.syncMode {
+		if _, err := da.SyncStorage.WriteAll(mm); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (da *Adapter) Read(m *metric.Metric) error {
+	return execRWWtihRetry(da.Ds.Read)(m)
+	// return da.Ds.Read(m)
+}
+
+func (da *Adapter) ReadAll(mm *[]metric.Metric) error {
+	_, err := execRWAllWtihRetry(da.Ds.ReadAll)(mm)
+	// _, err := da.Ds.ReadAll(mm)
+	return err
+}
+
 // Синхронизация записи
 // Если интервал == 0 - синхронная запись во второе хранилище через метод da.Write
 // Если интревал > 0 - запускаем горутину с копированием состояния
 func (da *Adapter) Sync(interval uint, dst storage.DataStorage) {
-	da.syncStorage = dst
+	da.SyncStorage = dst
 	da.syncMode = (interval == 0)
 	if da.syncMode {
 		return
@@ -55,7 +148,9 @@ func (da *Adapter) Sync(interval uint, dst storage.DataStorage) {
 		ticker := time.NewTicker(time.Duration(interval) * time.Second)
 		for {
 			<-ticker.C
-			da.CopyState(da.ds, da.syncStorage)
+			//Надо почистить перед записью!!!
+			da.SyncStorage.Truncate()
+			da.CopyState(da.Ds, da.SyncStorage)
 		}
 	}()
 }
@@ -78,77 +173,9 @@ func (da *Adapter) CopyState(src storage.DataStorage, dst storage.DataStorage) e
 	return nil
 }
 
-func (da *Adapter) MainPage(w http.ResponseWriter, r *http.Request) {
-	mcs := make([]metric.Metric, 0)
-	_, err := da.ds.ReadAll(&mcs)
-
-	logger.SLog.Debugw("ADAPTER", "metric", mcs)
-
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	body := ""
-	for _, v := range mcs {
-		body += fmt.Sprintf("Name: %s  Type: %s Value: %s \r\n", v.Name, v.Type, v.Value())
-	}
-	w.Header().Set("Content-Type", "text/html")
-	w.Write([]byte(body))
-}
-
-// Handler to save metric received with JSON
-func (da *Adapter) SetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
-	m, err := da.checkRequestAndGetMetric(r)
-	if err != nil {
-		logger.SLog.Errorw("fail to receive data", "error", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	//Сохраняем метрику в хранилище
-	if err = da.Write(m); err != nil {
-		logger.SLog.Errorw("fail to save metric", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	logger.SLog.Infow("receive new", "metric", m)
-
-	//Возвращаем метрику из хранилища с обновленным Value
-	mj, err := da.readMetricAndMarshal(m)
-	if err != nil {
-		logger.SLog.Errorw("", err)
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(mj)
-	// w.WriteHeader(http.StatusOK)
-}
-
-// Handler to save metric received with JSON
-func (da *Adapter) GetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
-	m, err := da.checkRequestAndGetMetric(r)
-	if err != nil {
-		logger.SLog.Errorw("fail to receive data", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-	//Возвращаем метрику из хранилища с обновленным Value
-	mj, err := da.readMetricAndMarshal(m)
-	if err != nil {
-		logger.SLog.Errorw("", err)
-		http.Error(w, err.Error(), http.StatusNotFound)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(mj)
-	// w.WriteHeader(http.StatusOK)
-}
-
 // Read metric and convert to data interface type
 func (da *Adapter) readMetricAndMarshal(m *metric.Metric) ([]byte, error) {
-	err := da.ds.Read(m)
+	err := da.Read(m)
 	if err != nil {
 		return nil, fmt.Errorf("fail to read metric: %w", err)
 	}
@@ -183,45 +210,4 @@ func (da *Adapter) checkRequestAndGetMetric(r *http.Request) (*metric.Metric, er
 		return nil, fmt.Errorf("fail to convert json: %w", err)
 	}
 	return metric.ConvertMetricI2S(&mi), nil
-}
-
-// Set metric  via post url
-func (da *Adapter) SetDataTextHandler(w http.ResponseWriter, r *http.Request) {
-	var m metric.Metric
-	var err error
-	w.Header().Set("Content-Type", "text/plain")
-	//Make metric params case insensitive
-	mType := strings.ToLower(chi.URLParam(r, "type"))
-	mName := strings.ToLower(chi.URLParam(r, "name"))
-	mValue := strings.ToLower(chi.URLParam(r, "value"))
-	//Checking metric type and name
-	if err = m.Set(mName, mValue, mType); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-	}
-	//Processing metrics values
-	if err = da.Write(&m); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-}
-
-// Get request for metrci via URL
-func (da *Adapter) GetDataTextHandler(w http.ResponseWriter, r *http.Request) {
-	var m metric.Metric
-	w.Header().Set("Content-Type", "text/plain")
-	//Make metric params case insensitive
-	mType := strings.ToLower(chi.URLParam(r, "type"))
-	mName := strings.ToLower(chi.URLParam(r, "name"))
-	if err := m.Set(mName, "0", mType); err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	//Selecting metrics from storage
-	if err := da.ds.Read(&m); err != nil {
-		w.WriteHeader(http.StatusNotFound)
-		return
-	}
-	w.Write([]byte(m.Value()))
-	w.WriteHeader(http.StatusOK)
 }

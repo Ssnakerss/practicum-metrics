@@ -40,11 +40,11 @@ func TestPollMemStatsMetrics(t *testing.T) {
 		},
 	}
 
-	gatheredMetrics := make(map[string]Metric)
+	gatheredMetrics := make([]Metric, 0)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := PollMemStatsMetrics(tt.args.metricsToGather, gatheredMetrics); (err != nil) != tt.wantErr {
+			if err := PollMemStatsMetrics(tt.args.metricsToGather, &gatheredMetrics); (err != nil) != tt.wantErr {
 				t.Errorf("PollMemStatsMetrics() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

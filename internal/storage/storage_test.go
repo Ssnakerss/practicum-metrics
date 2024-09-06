@@ -43,11 +43,11 @@ func TestStorage_CounterWriteRead(t *testing.T) {
 }
 
 func TestStorage_GaugeWriteRead(t *testing.T) {
-	f := FileStorage{}
-	f.New("testfile.txt")
-	f.Truncate()
-	// f := MemStorage{}
-	// f.New()
+	// f := FileStorage{}
+	// f.New("testfile.txt")
+	// f.Truncate()
+	f := MemStorage{}
+	f.New()
 
 	t.Run("gauge write read test", func(t *testing.T) {
 		m := metric.Metric{
@@ -55,7 +55,6 @@ func TestStorage_GaugeWriteRead(t *testing.T) {
 			Type:  "gauge",
 			Gauge: 1.1,
 		}
-
 		//Пишем и проверяем что записалось
 		f.Write(&m)
 		rm := metric.Metric{

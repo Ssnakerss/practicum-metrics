@@ -66,10 +66,10 @@ type (
 	}
 
 	Metric struct { // Оставляем для обратной совместимости
-		Name    string  `json:"id"`              //ID
-		Type    string  `json:"type"`            //MType
-		Gauge   float64 `json:"value,omitempty"` //Value
-		Counter int64   `json:"delta,omitempty"` //Delta
+		Name    string  `json:"name"`              //ID
+		Type    string  `json:"type"`              //MType
+		Gauge   float64 `json:"gauge,omitempty"`   //Value
+		Counter int64   `json:"counter,omitempty"` //Delta
 	}
 )
 

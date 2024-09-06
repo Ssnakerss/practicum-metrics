@@ -8,7 +8,6 @@ import (
 )
 
 // Log будет доступен всему коду как синглтон.
-// Никакой код навыка, кроме функции InitLogger, не должен модифицировать эту переменную.
 // По умолчанию установлен no-op-логер, который не выводит никаких сообщений.
 var Log *zap.Logger = zap.NewNop()
 var SLog *zap.SugaredLogger = Log.Sugar()
@@ -22,6 +21,7 @@ func Initialize(level string) error {
 	}
 	// создаём новую конфигурацию логера
 	cfg := zap.NewProductionConfig()
+	// cfg := zap.NewDevelopmentConfig()
 	// устанавливаем уровень
 	cfg.Level = lvl
 	// создаём логер на основе конфигурации
@@ -55,12 +55,11 @@ func WithLogging(h http.Handler) http.HandlerFunc {
 		h.ServeHTTP(&lw, r)
 
 		duration := time.Since(start)
+
 		SLog.Infoln(
 			"uri", uri,
 			"method", method,
 			"duration", duration,
-		)
-		SLog.Infoln(
 			"status", responseData.status,
 			"size", responseData.size,
 		)
@@ -83,5 +82,12 @@ type (
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	size, err := r.ResponseWriter.Write(b)
 	r.responseData.size += size
+
 	return size, err
+}
+
+func (r *loggingResponseWriter) WriteHeader(statusCode int) {
+	// записываем код статуса, используя оригинальный http.ResponseWriter
+	r.ResponseWriter.WriteHeader(statusCode)
+	r.responseData.status = statusCode // захватываем код статуса
 }

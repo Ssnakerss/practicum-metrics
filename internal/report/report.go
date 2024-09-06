@@ -3,7 +3,6 @@ package report
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 
 	"github.com/go-resty/resty/v2"
 
@@ -12,11 +11,11 @@ import (
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 )
 
-func ReportMetrics(mm map[string]metric.Metric, serverAddr string) error {
-	for _, m := range mm {
-		err := SendMetricJSON(m, serverAddr)
-		if err != nil {
-			log.Printf("error happened while sending %v: %s \r\n", m, err)
+func ReportMetrics(mm []metric.Metric, serverAddr string) error {
+	//Проверяем есть ли данные для отравки
+	if len(mm) > 0 {
+		//Отправляем метрики батчами
+		if err := SendMetricJSONSlice(mm, serverAddr); err != nil {
 			return err
 		}
 	}
@@ -47,6 +46,36 @@ func SendMetricJSON(m metric.Metric, serverAddr string) error {
 	logger.SLog.Infow("convert metric", "byte[]", b, "json", string(b))
 
 	bgzip, err := compression.Compress(b)
+
+	if err == nil {
+		client := resty.New()
+		_, err = client.R().
+			SetHeader("Content-type", "application/json").
+			SetHeader("Content-Encoding", "gzip").
+			// SetHeader("Accept-Encoding", "gzip").
+			SetBody(bgzip).
+			Post(url)
+	}
+	return err
+}
+
+// Для отправки метрик в формате JSON батчами
+func SendMetricJSONSlice(mm []metric.Metric, serverAddr string) error {
+	url := "http://" + serverAddr + "/updates/"
+	mcsj := make([]metric.MetricJSON, 0)
+
+	for _, m := range mm {
+		//Сконвертим метрику в interface формат
+		mi := metric.ConvertMetricS2I(&m)
+		mcsj = append(mcsj, *mi)
+	}
+
+	body, err := json.Marshal(mcsj)
+	if err != nil {
+		return fmt.Errorf("error marshal []metricJSON %v", mcsj)
+	}
+	//Сжимаем боди гзипом
+	bgzip, err := compression.Compress(body)
 
 	if err == nil {
 		client := resty.New()
