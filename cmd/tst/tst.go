@@ -10,6 +10,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
 var secretkey = []byte("secret key")
@@ -53,9 +56,37 @@ func mw2(f func(string) string) func(string) string {
 	return ff
 }
 
+type User struct {
+	gorm.Model
+	Name  string
+	Email string `gorm:"uniqueIndex"`
+}
+
+type Metric struct { // Оставляем для обратной совместимости
+	gorm.Model
+	ID      uint
+	Name    string  `json:"name" gorm:"primaryKey:nametypekey"` //ID
+	Type    string  `json:"type" gorm:"primaryKey:nametypekey"` //MType
+	Gauge   float64 `json:"gauge,omitempty"`                    //Value
+	Counter int64   `json:"counter,omitempty"`                  //Delta
+}
+
 func main() {
 
 	fmt.Println(mw2(mw1(core))("hi"))
+	//`postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable`
+	dsn := "host=localhost user=postgres dbname=postgres password=postgres sslmode=disable"
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+	if err != nil {
+		panic(err)
+	}
+	// db.AutoMigrate(&User{})
+	db.AutoMigrate(&Metric{})
+
+	var metric []Metric
+	db.Find(&metric) // Создание записи
+
+	fmt.Println(metric)
 
 }
 
