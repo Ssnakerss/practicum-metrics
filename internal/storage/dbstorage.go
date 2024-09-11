@@ -18,6 +18,8 @@ type DBStorage struct {
 	dsn     string
 	timeout time.Duration
 	DB      *sql.DB
+	ictx    context.Context    //Внутренний контекст на основе родительского
+	cancel  context.CancelFunc //Объект для отмены таймаута
 }
 
 // Выбираем тип результирующей ошибки ошибки для методов пакета DB Storage
@@ -39,7 +41,7 @@ func errSelect(ctx context.Context, method string, err error) error {
 	return nil
 }
 
-func (dbs *DBStorage) New(p ...string) error {
+func (dbs *DBStorage) New(ctx context.Context, p ...string) error {
 	if len(p) < 2 {
 		return errSelect(context.TODO(), "init", fmt.Errorf("specify dsn and connection timeout"))
 	}
@@ -51,7 +53,10 @@ func (dbs *DBStorage) New(p ...string) error {
 	if i, err = strconv.Atoi(p[1]); err != nil {
 		return errSelect(context.TODO(), "init", fmt.Errorf("timeout value %s convertion error %w ", p[1], err))
 	}
-	dbs.timeout = time.Duration(i)
+
+	dbs.timeout = time.Duration(i) * time.Second
+	//Cоздаем экземпляр внутреннего контекста на основе внешнего родительского
+	dbs.ictx, dbs.cancel = context.WithCancel(ctx)
 	//Открываем коннект
 	dbs.DB, err = sql.Open("pgx", dbs.dsn)
 
@@ -79,7 +84,7 @@ func (dbs *DBStorage) New(p ...string) error {
 		ALTER TABLE IF EXISTS public.metrics
 			OWNER to postgres;
 	`
-	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
+	ctx, cancel := context.WithTimeout(dbs.ictx, dbs.timeout*time.Second)
 	defer cancel()
 
 	_, err = dbs.DB.ExecContext(ctx, sql)
@@ -92,12 +97,14 @@ func (dbs *DBStorage) New(p ...string) error {
 
 // Закрываем соединение с базой
 func (dbs *DBStorage) Close() {
+	//отменяем внутренний контекс
+	dbs.cancel()
 	dbs.DB.Close()
 }
 
 // Проверяем соединение
 func (dbs *DBStorage) CheckStorage() error {
-	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
+	ctx, cancel := context.WithTimeout(dbs.ictx, dbs.timeout*time.Second)
 	defer cancel()
 
 	err := dbs.DB.PingContext(ctx)
@@ -106,7 +113,7 @@ func (dbs *DBStorage) CheckStorage() error {
 }
 
 func (dbs *DBStorage) Write(m *metric.Metric) error {
-	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
+	ctx, cancel := context.WithTimeout(dbs.ictx, dbs.timeout*time.Second)
 	defer cancel()
 
 	sql := `insert into metrics 
@@ -131,7 +138,7 @@ func (dbs *DBStorage) Write(m *metric.Metric) error {
 // Сохраняем в базу [] метрик
 func (dbs *DBStorage) WriteAll(mm *([]metric.Metric)) (int, error) {
 	cnt := 0
-	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
+	ctx, cancel := context.WithTimeout(dbs.ictx, dbs.timeout*time.Second)
 	defer cancel()
 
 	sql := `insert into metrics 
@@ -166,7 +173,7 @@ func (dbs *DBStorage) WriteAll(mm *([]metric.Metric)) (int, error) {
 }
 
 func (dbs *DBStorage) Read(m *metric.Metric) error {
-	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
+	ctx, cancel := context.WithTimeout(dbs.ictx, dbs.timeout*time.Second)
 	defer cancel()
 
 	sql := `select 
@@ -185,7 +192,7 @@ func (dbs *DBStorage) Read(m *metric.Metric) error {
 //Читаем из базы массив метрик
 
 func (dbs *DBStorage) ReadAll(mm *([]metric.Metric)) (int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
+	ctx, cancel := context.WithTimeout(dbs.ictx, dbs.timeout*time.Second)
 	defer cancel()
 
 	rows, err := dbs.DB.QueryContext(ctx, `select 
@@ -217,7 +224,7 @@ func (dbs *DBStorage) ReadAll(mm *([]metric.Metric)) (int, error) {
 }
 
 func (dbs *DBStorage) Truncate() error {
-	ctx, cancel := context.WithTimeout(context.Background(), dbs.timeout*time.Second)
+	ctx, cancel := context.WithTimeout(dbs.ictx, dbs.timeout*time.Second)
 	defer cancel()
 
 	sql := `truncate table metrics`

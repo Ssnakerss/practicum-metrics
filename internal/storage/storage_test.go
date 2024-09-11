@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"testing"
 
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
@@ -9,7 +10,7 @@ import (
 
 func TestStorage_CounterWriteRead(t *testing.T) {
 	f := FileStorage{}
-	f.New("testfile.txt")
+	f.New(context.TODO(), "testfile.txt")
 	f.Truncate()
 	// f := MemStorage{}
 	// f.New()
@@ -47,7 +48,7 @@ func TestStorage_GaugeWriteRead(t *testing.T) {
 	// f.New("testfile.txt")
 	// f.Truncate()
 	f := MemStorage{}
-	f.New()
+	f.New(context.TODO())
 
 	t.Run("gauge write read test", func(t *testing.T) {
 		m := metric.Metric{

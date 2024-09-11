@@ -23,7 +23,7 @@ type Config struct {
 	//ADDRESS отвечает за адрес эндпоинта HTTP-сервера
 	EndPointAddress string `env:"ADDRESS"`
 	//Ключ для SHA256 хэширования
-	Key string `env:KEY`
+	Key string `env:"KEY"`
 }
 
 var Cfg Config
