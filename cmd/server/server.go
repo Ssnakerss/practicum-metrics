@@ -8,6 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/Ssnakerss/practicum-metrics/cmd/server/app"
 	"github.com/Ssnakerss/practicum-metrics/internal/flags"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"golang.org/x/sync/errgroup"
@@ -39,15 +40,14 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	//Создаем адаптер для хэндлеров и работы с хранилищем
-	da, err := InitAdapter(ctx)
+	da, err := app.InitAdapter(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	//Configuring CHI
-	r := NewRouter(da)
+	r := app.NewRouter(da)
 
-	//https://habr.com/ru/articles/771626/
 	//Ждем сигнал заверешения работы для остановки сервисов
 	go func() {
 		exit := make(chan os.Signal, 1)
@@ -65,12 +65,14 @@ func main() {
 		logger.Log.Fatal("program operation stopped")
 	}()
 	//-----------------------------------------------------------------------
+	//https://habr.com/ru/articles/771626/
 	httpServer := &http.Server{
 		Addr:    flags.Cfg.EndPointAddress,
 		Handler: r,
 	}
 	g, gCtx := errgroup.WithContext(ctx)
 	g.Go(func() error {
+		logger.SLog.Infow("startup", "config", flags.Cfg)
 		logger.SLog.Infow("starting server at ", "address", flags.Cfg.EndPointAddress)
 		return httpServer.ListenAndServe() //Запускаем сервер
 	})

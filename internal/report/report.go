@@ -1,9 +1,6 @@
 package report
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 
@@ -11,6 +8,7 @@ import (
 
 	"github.com/Ssnakerss/practicum-metrics/internal/compression"
 	"github.com/Ssnakerss/practicum-metrics/internal/flags"
+	"github.com/Ssnakerss/practicum-metrics/internal/hash"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 )
 
@@ -29,21 +27,16 @@ func ReportMetrics(mm []metric.Metric, serverAddr string) error {
 		if err != nil {
 			return fmt.Errorf("error marshal []metricJSON %v", mcsj)
 		}
-		return httpSend(body, url)
+		return httpSend(body, flags.Cfg.Key, url)
 	}
 	return nil
 }
 
-func httpSend(body []byte, url string) error {
+func httpSend(body []byte, hashKey string, url string) error {
 	// посчитаем подпись если задан ключ
-	hash := ``
-	if flags.Cfg.Key != `` {
-		h := hmac.New(sha256.New, []byte(flags.Cfg.Key))
-		_, err := h.Write(body)
-		if err != nil {
-			return err
-		}
-		hash = hex.EncodeToString(h.Sum(nil))
+	hash, err := hash.MakeSHA256(body, hashKey)
+	if err != nil {
+		return err
 	}
 	//Сжимаем боди гзипом
 	bgzip, err := compression.Compress(body)

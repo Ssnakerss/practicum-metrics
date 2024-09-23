@@ -79,10 +79,7 @@ func (dbs *DBStorage) New(ctx context.Context, p ...string) error {
 			counter bigint,
 			CONSTRAINT metrics_pkey PRIMARY KEY (name, type)
 		)
-		TABLESPACE pg_default;
-
-		ALTER TABLE IF EXISTS public.metrics
-			OWNER to postgres;
+		
 	`
 	ctx, cancel := context.WithTimeout(dbs.ictx, dbs.timeout*time.Second)
 	defer cancel()

@@ -38,9 +38,7 @@ func main() {
 	pollTimeTicker := time.NewTicker(time.Duration(flags.Cfg.PollInterval) * time.Second)
 	reportTimeTicker := time.NewTicker(time.Duration(flags.Cfg.ReportInterval) * time.Second)
 
-	logger.SLog.Infow("Agent started", "poll interval", flags.Cfg.PollInterval,
-		"report interval", flags.Cfg.ReportInterval,
-		"endpoint address", flags.Cfg.EndPointAddress)
+	logger.SLog.Infow("startup", "config", flags.Cfg)
 
 	ctx, cancel := context.WithCancel(context.Background())
 

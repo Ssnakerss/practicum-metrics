@@ -35,7 +35,8 @@ func ReadServerConfig() error {
 	//Сначала считаем командную строку если есть или заполним конфиг дефолтом
 
 	//Флаг -a=<ЗНАЧЕНИЕ> отвечает за адрес эндпоинта HTTP-сервера (по умолчанию localhost:8080)
-	flag.StringVar(&Cfg.EndPointAddress, "a", "localhost:8080", "endpoint address")
+	//`env:"ADDRESS"`
+	flag.StringVar(&Cfg.EndPointAddress, "a", ":8080", "endpoint address")
 	flag.StringVar(&Cfg.Key, "k", ``, "sha256 key")
 
 	//Server
@@ -63,7 +64,7 @@ func ReadServerConfig() error {
 
 func ReadAgentConfig() error {
 	//Флаг -a=<ЗНАЧЕНИЕ> отвечает за адрес эндпоинта HTTP-сервера (по умолчанию localhost:8080)
-	flag.StringVar(&Cfg.EndPointAddress, "a", "localhost:8080", "endpoint address")
+	flag.StringVar(&Cfg.EndPointAddress, "a", ":8080", "endpoint address")
 	flag.StringVar(&Cfg.Key, "k", ``, "sha256 key")
 
 	//Agent
