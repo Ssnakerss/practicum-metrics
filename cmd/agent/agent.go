@@ -10,10 +10,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Ssnakerss/practicum-metrics/cmd/agent/app/report"
 	"github.com/Ssnakerss/practicum-metrics/internal/flags"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
-	"github.com/Ssnakerss/practicum-metrics/internal/report"
 	"github.com/Ssnakerss/practicum-metrics/internal/storage"
 	"golang.org/x/sync/errgroup"
 )
@@ -33,7 +33,7 @@ func main() {
 
 	//хранилище собранных  метрик
 	var metricsStorage storage.MemStorage
-	metricsStorage.New(context.TODO())
+	metricsStorage.New(context.Background())
 
 	pollTimeTicker := time.NewTicker(time.Duration(flags.Cfg.PollInterval) * time.Second)
 	reportTimeTicker := time.NewTicker(time.Duration(flags.Cfg.ReportInterval) * time.Second)
@@ -78,6 +78,8 @@ func main() {
 					m.Set(n, p.MFunc(pollCount), p.MType)
 					metricsGathered = append(metricsGathered, m)
 				}
+				//Очищаем хранилище перед записью иначе counter будет ++ TO-DO - переделать
+				metricsStorage.Truncate()
 				//сохраним собраные метрики в хранилще
 				_, err := metricsStorage.WriteAll(&metricsGathered)
 				if err != nil {
@@ -107,9 +109,8 @@ func main() {
 				if _, err := metricsStorage.ReadAll(&metricsToSend); err != nil {
 					return err
 				}
-
 				//Отправляем метрики
-				//При ошибке -  пробуем еще раз с задежкой
+				//При ошибке -  пробуем еще раз с задержкой
 				for err != nil {
 					logger.Log.Info("reporting metric")
 					//TODO поменять time.Sleep на TimeTicker
@@ -128,9 +129,6 @@ func main() {
 				} else {
 					logger.SLog.Infof("reported %d metrics", len(metricsToSend))
 				}
-
-				//очищаем мапу передачи
-				metricsToSend = nil
 			}
 		}
 	})

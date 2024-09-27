@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
+	"time"
+
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/mem"
 )
 
 func PollMemStatsMetrics(metricsToGather []string,
@@ -35,5 +39,37 @@ func PollMemStatsMetrics(metricsToGather []string,
 	if idx != len(metricsToGather) {
 		return fmt.Errorf("not all metrics found")
 	}
+	return nil
+}
+
+func PollGopsMetrics(metricsToGather []string, result *[]Metric) error {
+	v, _ := mem.VirtualMemory()
+	fmt.Printf("Total: %v, Free:%v, UsedPercent:%f%%\n", v.Total, v.Free, v.UsedPercent)
+	// convert to JSON. String() is also implemented
+	fmt.Println(v)
+	c, _ := cpu.Percent(4*time.Second, true)
+	fmt.Println(c)
+
+	//TO-DO: Implement this
+	//Затычка для гопса
+	mm := []Metric{
+		{
+			Name:  "TotalMemory",
+			Gauge: 16566.0,
+			Type:  "gauge",
+		},
+		{
+			Name:  "FreeMemory",
+			Gauge: 1666.0,
+			Type:  "gauge",
+		},
+		{
+			Name:  "CPUutilization1",
+			Gauge: 89.9,
+			Type:  "gauge",
+		},
+	}
+	time.Sleep(time.Millisecond * 50)
+	*result = append(*result, mm...)
 	return nil
 }

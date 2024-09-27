@@ -37,6 +37,12 @@ var MemStatsMetrics = []string{
 	"TotalAlloc",
 }
 
+var GopsMetrics = []string{
+	"TotalMemory",
+	"FreeMemery",
+	"CPUutilization1",
+}
+
 type etcMetrics struct {
 	MType string
 	MFunc func(p ...int) string
