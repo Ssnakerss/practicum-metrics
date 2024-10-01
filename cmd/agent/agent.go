@@ -7,16 +7,21 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
-	"github.com/Ssnakerss/practicum-metrics/cmd/agent/app/report"
 	"github.com/Ssnakerss/practicum-metrics/internal/flags"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
-	"github.com/Ssnakerss/practicum-metrics/internal/storage"
+	"github.com/Ssnakerss/practicum-metrics/internal/report"
 	"golang.org/x/sync/errgroup"
 )
+
+type sharedSlice struct {
+	m     sync.Mutex
+	Slice []metric.Metric
+}
 
 func main() {
 
@@ -30,15 +35,13 @@ func main() {
 	if err := flags.ReadAgentConfig(); err != nil {
 		logger.SLog.Warnw("error getting env params", "error", err)
 	}
+	logger.SLog.Infow("startup", "config", flags.Cfg)
 
 	//хранилище собранных  метрик
-	var metricsStorage storage.MemStorage
-	metricsStorage.New(context.Background())
+	var mm sharedSlice
 
 	pollTimeTicker := time.NewTicker(time.Duration(flags.Cfg.PollInterval) * time.Second)
 	reportTimeTicker := time.NewTicker(time.Duration(flags.Cfg.ReportInterval) * time.Second)
-
-	logger.SLog.Infow("startup", "config", flags.Cfg)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
@@ -63,31 +66,10 @@ func main() {
 				return err
 			case <-pollTimeTicker.C:
 				//Собираем метрики
-				//делаем новый слайс для метрик
-				metricsGathered := make([]metric.Metric, 0)
-				//MemStat metric - получаем из runtime.MemStats
-				logger.SLog.Info("Gathering MemStatsMetrics")
-				if err := metric.PollMemStatsMetrics(metric.MemStatsMetrics, &metricsGathered); err != nil {
-					logger.SLog.Errorw("polling metrics", "erorr", err)
-					return err
-				}
-				// Кастомные метрики -  получаем вызывая функции из определения метрики
-				logger.SLog.Info("Gathering ExtraMetrics")
-				for n, p := range metric.ExtraMetrics {
-					var m metric.Metric
-					m.Set(n, p.MFunc(pollCount), p.MType)
-					metricsGathered = append(metricsGathered, m)
-				}
-				//Очищаем хранилище перед записью иначе counter будет ++ TO-DO - переделать
-				metricsStorage.Truncate()
-				//сохраним собраные метрики в хранилще
-				_, err := metricsStorage.WriteAll(&metricsGathered)
-				if err != nil {
-					logger.SLog.Errorw("saving metrics to storage", "erorr", err)
-					return err
-				}
-				//очищаем слайс
-				metricsGathered = nil
+				mm.m.Lock()
+				logger.SLog.Infof("#%d poll  metrics", pollCount)
+				mm.Slice = metric.CollectMetrics(pollCount)
+				mm.m.Unlock()
 				pollCount++
 			}
 		}
@@ -101,16 +83,17 @@ func main() {
 				logger.SLog.Info(err.Error())
 				return err
 			case <-reportTimeTicker.C:
-				err := errors.New("trying to send")
-				retry := 0
 
 				//читам метрики из хранилища для передачи
-				metricsToSend := make([]metric.Metric, 0)
-				if _, err := metricsStorage.ReadAll(&metricsToSend); err != nil {
-					return err
-				}
+				mm.m.Lock()
+				metricsToSend := mm.Slice
+				mm.Slice = nil
+				mm.m.Unlock()
+
 				//Отправляем метрики
 				//При ошибке -  пробуем еще раз с задержкой
+				err := errors.New("trying to send")
+				retry := 0
 				for err != nil {
 					logger.Log.Info("reporting metric")
 					//TODO поменять time.Sleep на TimeTicker

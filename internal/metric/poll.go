@@ -10,9 +10,7 @@ import (
 	"github.com/shirou/gopsutil/v4/mem"
 )
 
-func PollMemStatsMetrics(metricsToGather []string,
-	result *[]Metric) error {
-
+func PollMemStatsMetrics(metricsToGather []string, result *[]Metric) error {
 	var memoryStat runtime.MemStats
 	runtime.ReadMemStats(&memoryStat)
 	val := reflect.ValueOf(memoryStat)
@@ -44,32 +42,28 @@ func PollMemStatsMetrics(metricsToGather []string,
 
 func PollGopsMetrics(metricsToGather []string, result *[]Metric) error {
 	v, _ := mem.VirtualMemory()
-	fmt.Printf("Total: %v, Free:%v, UsedPercent:%f%%\n", v.Total, v.Free, v.UsedPercent)
-	// convert to JSON. String() is also implemented
-	fmt.Println(v)
-	c, _ := cpu.Percent(4*time.Second, true)
-	fmt.Println(c)
-
-	//TO-DO: Implement this
-	//Затычка для гопса
 	mm := []Metric{
 		{
 			Name:  "TotalMemory",
-			Gauge: 16566.0,
+			Gauge: float64(v.Total),
 			Type:  "gauge",
 		},
 		{
 			Name:  "FreeMemory",
-			Gauge: 1666.0,
-			Type:  "gauge",
-		},
-		{
-			Name:  "CPUutilization1",
-			Gauge: 89.9,
+			Gauge: float64(v.Free),
 			Type:  "gauge",
 		},
 	}
-	time.Sleep(time.Millisecond * 50)
 	*result = append(*result, mm...)
+
+	cpu, _ := cpu.Percent(1*time.Second, true)
+	for _, c := range cpu {
+		m := Metric{
+			Name:  fmt.Sprintf("CPUutilization%f", c),
+			Gauge: float64(c),
+			Type:  "gauge",
+		}
+		*result = append(*result, m)
+	}
 	return nil
 }

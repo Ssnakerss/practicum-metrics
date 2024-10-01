@@ -3,14 +3,13 @@
 package main
 
 import (
-	"context"
 	"fmt"
+	"sync/atomic"
 	"time"
 
 	"math/rand"
 
-	"github.com/shirou/gopsutil/v4/cpu"
-	"github.com/shirou/gopsutil/v4/mem"
+	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 )
 
 type Semaphore struct {
@@ -31,98 +30,56 @@ func (s *Semaphore) Release() {
 	<-s.semaCh
 }
 
-func worker(id int, jobs <-chan int, results chan<- int) {
-	for j := range jobs {
-		fmt.Println("рабочий процесс", id, "запущен задача", j)
-		time.Sleep(time.Second * 1)
-		fmt.Println("рабочий процесс", id, "завершен задача", j)
-		results <- j
-	}
-}
+// --------------------------------------------------
 
-func dummyMetrict(ctx context.Context, readyToReceive chan struct{}) chan []float64 {
-	result := make(chan []float64)
-	go func() {
-		defer close(result)
-		for {
-			//Задержка для имитации работы процесса
-			time.Sleep(time.Second * time.Duration(rand.Intn(3)))
-
-			select {
-			case <-ctx.Done():
-				return
-				//Ждем подтверждения готовности к приему данных
-			case <-readyToReceive:
-				c, err := cpu.Percent(time.Millisecond*1000, true)
-				if err != nil {
-					return
-				}
-				v, err := mem.VirtualMemory()
-				if err != nil {
-					return
-				}
-				c = append(c, float64(v.Total), float64(v.Free))
-				result <- c
-			}
-		}
+func sendWorker(m metric.Metric, done chan struct{}, cnt int) error {
+	defer func() {
+		<-done
 	}()
+	//Задержка для имитации работы процесса
+	fmt.Printf("worker %d start sending\n\r	", cnt)
+	time.Sleep(time.Millisecond * time.Duration(rand.Intn(100)))
+	fmt.Printf("by worker %d send metric %v \n\r	", cnt, m)
+	atomic.AddInt64(&SentMetrics, 1)
+	return nil
+}
 
-	return result
-}
-func gen(ctx context.Context, readyToReceive chan struct{}, cnt int) []chan []float64 {
-	res := make([]chan []float64, cnt)
-	for i := 0; i < cnt; i++ {
-		res[i] = dummyMetrict(ctx, readyToReceive)
+func anotherWorker(tasks chan metric.Metric) error {
+	for m := range tasks {
+		fmt.Println("another worker got metric ", m)
 	}
-	return res
+	return nil
 }
+
+var SentMetrics int64
 
 func main() {
+	res := metric.CollectMetrics(1)
+	fmt.Println("metrics collected ", len(res))
+	//теперь отправляем полученные метрики
+	//семафор и воркеры
 	const numjobs = 5
+	SentMetrics = 0
 
-	readyToReceive := make(chan struct{})
-	defer close(readyToReceive)
+	jobs := make(chan struct{}, numjobs)
 
-	res := gen(context.Background(), readyToReceive, numjobs)
-
-	for i := 0; i < 10; i++ {
-		for j := 0; j < numjobs; j++ {
-			readyToReceive <- struct{}{}
-		}
-		for _, c := range res {
-			fmt.Println("iter ", i, ">>", <-c)
-		}
+	for _, m := range res {
+		jobs <- struct{}{}
+		go sendWorker(m, jobs, len(jobs))
 	}
-
-	// const numjobs = 5
-	// jobs := make(chan int, numjobs)
-	// results := make(chan int, numjobs)
-
-	// for w := 1; w <= 3; w++ {
-	// 	go worker(w, jobs, results)
-	// }
-
-	// for j := 1; j <= numjobs; j++ {
-	// 	jobs <- j
-	// }
-	// close(jobs)
-
-	// for a := 1; a <= numjobs; a++ {
-	// 	fmt.Println(<-results)
-	// }
-
-	// // var wg sync.WaitGroup
-	// // var sema = NewSemaphore(2)
-	// // for i := 0; i < 10; i++ {
-	// // 	wg.Add(1)
-	// // 	go func(i int) {
-	// // 		defer wg.Done()
-	// // 		sema.Acquire()
-	// // 		defer sema.Release()
-	// // 		fmt.Println(i)
-	// // 		time.Sleep(time.Second * 1)
-	// // 	}(i)
-	// // }
-	// // wg.Wait()
-
+	for len(jobs) != 0 {
+		//ждем пока все задачи выполнятся
+	}
+	close(jobs)
+	fmt.Println("metrics sent ", SentMetrics)
+	//отправим метрики через воркепул
+	//канал для воркеров
+	tasksChannel := make(chan metric.Metric)
+	for i := 0; i < numjobs; i++ {
+		go anotherWorker(tasksChannel)
+	}
+	for _, m := range res {
+		tasksChannel <- m
+	}
+	close(tasksChannel) //закрыем канал
 }
