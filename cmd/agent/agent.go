@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -56,6 +55,7 @@ func main() {
 
 	//Собираем метрики по таймеру
 	g, gCtx := errgroup.WithContext(ctx)
+
 	g.Go(func() error {
 		pollCount := 0
 		for {
@@ -83,7 +83,7 @@ func main() {
 				logger.SLog.Info(err.Error())
 				return err
 			case <-reportTimeTicker.C:
-
+				logger.SLog.Infof("sending  metrics")
 				//читам метрики из хранилища для передачи
 				mm.m.Lock()
 				metricsToSend := mm.Slice
@@ -91,27 +91,7 @@ func main() {
 				mm.m.Unlock()
 
 				//Отправляем метрики
-				//При ошибке -  пробуем еще раз с задержкой
-				err := errors.New("trying to send")
-				retry := 0
-				for err != nil {
-					logger.Log.Info("reporting metric")
-					//TODO поменять time.Sleep на TimeTicker
-					time.Sleep(time.Duration(flags.RetryIntervals[retry]) * time.Second)
-					err = report.ReportMetrics(metricsToSend, flags.Cfg.EndPointAddress)
-					if err == nil ||
-						retry == len(flags.RetryIntervals)-1 ||
-						gCtx.Err() != nil {
-						break
-					}
-					retry++
-					logger.SLog.Warnf("error reporting, retry in %d seconds", flags.RetryIntervals[retry])
-				}
-				if err != nil {
-					logger.SLog.Errorw("error reporting", "err", err)
-				} else {
-					logger.SLog.Infof("reported %d metrics", len(metricsToSend))
-				}
+				report.SendMetrics(gCtx, metricsToSend)
 			}
 		}
 	})

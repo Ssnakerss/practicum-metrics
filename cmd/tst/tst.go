@@ -56,30 +56,40 @@ var SentMetrics int64
 func main() {
 	res := metric.CollectMetrics(1)
 	fmt.Println("metrics collected ", len(res))
-	//теперь отправляем полученные метрики
-	//семафор и воркеры
-	const numjobs = 5
-	SentMetrics = 0
-
-	jobs := make(chan struct{}, numjobs)
-
-	for _, m := range res {
-		jobs <- struct{}{}
-		go sendWorker(m, jobs, len(jobs))
+	// //теперь отправляем полученные метрики
+	// //семафор и воркеры
+	// const numjobs = 5
+	// SentMetrics = 0
+	// jobs := make(chan struct{}, numjobs)
+	// for _, m := range res {
+	// 	jobs <- struct{}{}
+	// 	go sendWorker(m, jobs, len(jobs))
+	// }
+	// for len(jobs) != 0 {
+	// 	//ждем пока все задачи выполнятся
+	// }
+	// close(jobs)
+	// fmt.Println("metrics sent ", SentMetrics)
+	// //отправим метрики через воркепул
+	// //канал для воркеров
+	// tasksChannel := make(chan metric.Metric)
+	// for i := 0; i < numjobs; i++ {
+	// 	go anotherWorker(tasksChannel)
+	// }
+	// for _, m := range res {
+	// 	tasksChannel <- m
+	// }
+	// close(tasksChannel) //закрыем канал
+	//------------------------------------------------
+	numWorkers := 1
+	batchSize := len(res) / numWorkers
+	fmt.Println("batch size ", batchSize)
+	for i := 0; i < len(res); i = i + batchSize {
+		end := i + batchSize
+		if end > len(res) {
+			end = len(res)
+		}
+		fmt.Println("sending batch ", res[i:end])
+		// go sendBatch(sample[i:end])
 	}
-	for len(jobs) != 0 {
-		//ждем пока все задачи выполнятся
-	}
-	close(jobs)
-	fmt.Println("metrics sent ", SentMetrics)
-	//отправим метрики через воркепул
-	//канал для воркеров
-	tasksChannel := make(chan metric.Metric)
-	for i := 0; i < numjobs; i++ {
-		go anotherWorker(tasksChannel)
-	}
-	for _, m := range res {
-		tasksChannel <- m
-	}
-	close(tasksChannel) //закрыем канал
 }

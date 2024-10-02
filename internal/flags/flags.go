@@ -24,6 +24,9 @@ type Config struct {
 	EndPointAddress string `env:"ADDRESS"`
 	//Ключ для SHA256 хэширования
 	Key string `env:"KEY"`
+	//Количество исходящих запросо к серверу
+	//По имуолчанию 1 - отправлять одним пакетом
+	RateLimit int `env:"RATE_LIMIT"`
 }
 
 var Cfg Config
@@ -66,6 +69,7 @@ func ReadAgentConfig() error {
 	//Флаг -a=<ЗНАЧЕНИЕ> отвечает за адрес эндпоинта HTTP-сервера (по умолчанию localhost:8080)
 	flag.StringVar(&Cfg.EndPointAddress, "a", ":8080", "endpoint address")
 	flag.StringVar(&Cfg.Key, "k", ``, "sha256 key")
+	flag.IntVar((&Cfg.RateLimit), "l", 1, "rate limit")
 
 	//Agent
 	//Флаг -r=<ЗНАЧЕНИЕ> позволяет переопределять reportInterval — частоту отправки метрик на сервер (по умолчанию 10 секунд).
