@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Ssnakerss/practicum-metrics/internal/compression"
 	"github.com/Ssnakerss/practicum-metrics/internal/flags"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
@@ -28,6 +27,9 @@ func (da *Adapter) New(ds storage.DataStorage) {
 	da.SyncStorage = nil
 }
 
+//TODO: переписать execRWWithRetry & execRWAllWithRetry в одну функцию
+//Заменить Read(m *metric.Metric) -> Read(mm *[]metric.Metric),  избавиться от ReadAll/WriteAll
+
 // Функция-обертка для  повторного вызова при возникновении ошибок
 func execRWWtihRetry(f func(*metric.Metric) error) func(*metric.Metric) error {
 	return func(m *metric.Metric) error {
@@ -36,7 +38,6 @@ func execRWWtihRetry(f func(*metric.Metric) error) func(*metric.Metric) error {
 		var stErr *storage.StorageError
 		//При ошибке подключения  -  пробуем еще раз с задежкой
 		for err != nil {
-			logger.Log.Info("call read")
 			time.Sleep(time.Duration(flags.RetryIntervals[retry]) * time.Second)
 			//Вызываем основной метод
 			err = f(m)
@@ -68,7 +69,6 @@ func execRWAllWtihRetry(f func(*[]metric.Metric) (int, error)) func(*[]metric.Me
 		var stErr *storage.StorageError
 		//При ошибке подключения  -  пробуем еще раз с задежкой
 		for err != nil {
-			logger.Log.Info("call read")
 			time.Sleep(time.Duration(flags.RetryIntervals[retry]) * time.Second)
 			//Вызываем основной метод
 			cnt, err = f(m)
@@ -138,7 +138,7 @@ func (da *Adapter) ReadAll(mm *[]metric.Metric) error {
 // Синхронизация записи
 // Если интервал == 0 - синхронная запись во второе хранилище через метод da.Write
 // Если интревал > 0 - запускаем горутину с копированием состояния
-func (da *Adapter) Sync(interval uint, dst storage.DataStorage) {
+func (da *Adapter) StartSync(interval uint, dst storage.DataStorage) {
 	da.SyncStorage = dst
 	da.syncMode = (interval == 0)
 	if da.syncMode {
@@ -148,11 +148,18 @@ func (da *Adapter) Sync(interval uint, dst storage.DataStorage) {
 		ticker := time.NewTicker(time.Duration(interval) * time.Second)
 		for {
 			<-ticker.C
-			//Надо почистить перед записью!!!
-			da.SyncStorage.Truncate()
-			da.CopyState(da.Ds, da.SyncStorage)
+			da.DoSync()
 		}
 	}()
+}
+
+func (da *Adapter) DoSync() {
+	if da.SyncStorage != nil {
+		//Надо почистить перед записью!!!
+		da.SyncStorage.Truncate()
+		logger.Log.Info("saving state to sync storage")
+		da.CopyState(da.Ds, da.SyncStorage)
+	}
 }
 
 // Копирование состояния хранилища
@@ -198,12 +205,13 @@ func (da *Adapter) checkRequestAndGetMetric(r *http.Request) (*metric.Metric, er
 		return nil, fmt.Errorf("cannot read request body: %w", err)
 	}
 	//Decompression -> TODO: Change to MiddleWare
-	if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
-		body, err = compression.Decompress(body)
-		if err != nil {
-			return nil, fmt.Errorf("fail to un-gzip body %w", err)
-		}
-	}
+	// if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+	// 	body, err = compression.Decompress(body)
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("fail to un-gzip body %w", err)
+	// 	}
+	// }
+
 	var mi metric.MetricJSON
 	err = json.Unmarshal(body, &mi)
 	if err != nil {

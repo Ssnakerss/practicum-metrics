@@ -9,6 +9,7 @@ import (
 	"strings"
 )
 
+// Для сжатия ответов
 type gzipWriter struct {
 	http.ResponseWriter
 	Writer io.Writer
@@ -21,10 +22,19 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 
 func GzipHandle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		//Проверяем что в боди сжатое содержимое
+		//Распаковываем и заменяем оригинальный боди
+		if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+			body, err := io.ReadAll(r.Body)
+			if err == nil {
+				body, err = Decompress(body)
+			}
+			if err == nil {
+				r.Body = io.NopCloser(bytes.NewBuffer(body))
+			}
+		}
+
 		// проверяем, что клиент поддерживает gzip-сжатие
-		// это упрощённый пример. В реальном приложении следует проверять все
-		// значения r.Header.Values("Accept-Encoding") и разбирать строку
-		// на составные части, чтобы избежать неожиданных результатов
 		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			// если gzip не поддерживается, передаём управление
 			// дальше без изменений

@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
+	"time"
+
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/mem"
 )
 
-func PollMemStatsMetrics(metricsToGather []string,
-	result *[]Metric) error {
-
+func PollMemStatsMetrics(metricsToGather []string, result *[]Metric) error {
 	var memoryStat runtime.MemStats
 	runtime.ReadMemStats(&memoryStat)
 	val := reflect.ValueOf(memoryStat)
@@ -34,6 +36,34 @@ func PollMemStatsMetrics(metricsToGather []string,
 	}
 	if idx != len(metricsToGather) {
 		return fmt.Errorf("not all metrics found")
+	}
+	return nil
+}
+
+func PollGopsMetrics(metricsToGather []string, result *[]Metric) error {
+	v, _ := mem.VirtualMemory()
+	mm := []Metric{
+		{
+			Name:  "TotalMemory",
+			Gauge: float64(v.Total),
+			Type:  "gauge",
+		},
+		{
+			Name:  "FreeMemory",
+			Gauge: float64(v.Free),
+			Type:  "gauge",
+		},
+	}
+	*result = append(*result, mm...)
+
+	cpu, _ := cpu.Percent(1*time.Second, true)
+	for _, c := range cpu {
+		m := Metric{
+			Name:  fmt.Sprintf("CPUutilization%f", c),
+			Gauge: float64(c),
+			Type:  "gauge",
+		}
+		*result = append(*result, m)
 	}
 	return nil
 }

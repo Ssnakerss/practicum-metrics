@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 	"sync"
 
@@ -15,7 +16,7 @@ type MemStorage struct {
 }
 
 // New - initialize storage
-func (memst *MemStorage) New(p ...string) error {
+func (memst *MemStorage) New(ctx context.Context, p ...string) error {
 	memst.metrics = make(map[string]*metric.Metric)
 	return nil
 }

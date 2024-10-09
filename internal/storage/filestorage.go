@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -21,7 +22,7 @@ const (
 	chunckSize int64 = 100
 )
 
-func (filest *FileStorage) New(p ...string) error {
+func (filest *FileStorage) New(ctx context.Context, p ...string) error {
 	if len(p) < 1 {
 		return fmt.Errorf("file name no specified")
 	}

@@ -96,7 +96,7 @@ func TestSetGetDataTextHandler(t *testing.T) {
 	}
 
 	memst := &storage.MemStorage{}
-	if err := memst.New(); err != nil {
+	if err := memst.New(context.TODO()); err != nil {
 		logger.SLog.Fatalw("cannot initialize", "storage", memst)
 	}
 
@@ -134,7 +134,7 @@ func TestSetGetDataTextHandler(t *testing.T) {
 func TestSetDataJSONHandler(t *testing.T) {
 	da := Adapter{}
 	memst := &storage.MemStorage{}
-	memst.New()
+	memst.New(context.TODO())
 	da.New(memst)
 
 	handler := http.HandlerFunc(da.SetDataJSONHandler)

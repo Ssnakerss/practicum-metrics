@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -8,7 +9,7 @@ import (
 )
 
 type DataStorage interface {
-	New(p ...string) error
+	New(ctx context.Context, p ...string) error
 
 	Read(m *metric.Metric) error
 	Write(m *metric.Metric) error
@@ -23,7 +24,6 @@ type DataStorage interface {
 }
 
 // Описываем ошибку для типа storage в которую будем упаковывать специфические ошибки
-
 const (
 	ConnectionError uint = 10
 	TimeoutError    uint = 13

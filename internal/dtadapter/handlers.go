@@ -3,11 +3,9 @@ package dtadapter
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 
-	"github.com/Ssnakerss/practicum-metrics/internal/compression"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 	"github.com/go-chi/chi/v5"
@@ -28,7 +26,6 @@ func (da *Adapter) MainPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html")
-	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(body))
 }
 
@@ -41,25 +38,11 @@ func (da *Adapter) SetDataJSONSliceHandler(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "incorrect content type", http.StatusBadRequest)
 		return
 	}
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		logger.SLog.Errorf("cannot read request", "body", r.Body)
-		http.Error(w, "cannot read request body", http.StatusBadRequest)
-		return
-	}
-	//Decompression -> TODO: Change to MiddleWare
-	if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
-		body, err = compression.Decompress(body)
-		if err != nil {
-			logger.SLog.Errorw("fail to un-gzip", "body", body)
-			http.Error(w, "fail to un-gzip body", http.StatusBadRequest)
-			return
-		}
-	}
+	//Распаковка боди уже в мидлваре
 	//Теперь у нас есть распакованная строка, пробуем сконвертить ее в массив метрик
 	mcsj := make([]metric.MetricJSON, 0)
 	mcs := make([]metric.Metric, 0)
-	if err = json.Unmarshal(body, &mcsj); err != nil {
+	if err := json.NewDecoder(r.Body).Decode(&mcsj); err != nil {
 		http.Error(w, "cannot convert json to []metric", http.StatusBadRequest)
 		return
 	}
@@ -67,17 +50,13 @@ func (da *Adapter) SetDataJSONSliceHandler(w http.ResponseWriter, r *http.Reques
 		mcs = append(mcs, *metric.ConvertMetricI2S(&m))
 	}
 	//Записываем получившийся массив в хранилище
-	err = da.WriteAll(&mcs)
+	err := da.WriteAll(&mcs)
 	if err != nil {
 		http.Error(w, "error saving to storage", http.StatusInternalServerError)
 		return
 	}
 	logger.SLog.Infow("received new [] of metrics", "count", len(mcs))
-
-	//Что-то пишем в ответ, надо ли - посмотрим на тестах
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("{}"))
 }
 
 // Handler to save metric received with JSON
@@ -104,7 +83,6 @@ func (da *Adapter) SetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	w.Write(mj)
 
 }
@@ -125,7 +103,6 @@ func (da *Adapter) GetDataJSONHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
 	w.Write(mj)
 
 }
@@ -172,7 +149,6 @@ func (da *Adapter) GetDataTextHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/plain")
-	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(m.Value()))
 }
 

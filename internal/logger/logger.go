@@ -37,10 +37,10 @@ func Initialize(level string) error {
 
 // Middleware для оборачивания хэндлера и логирования событий
 // Для обработки запросов
-func WithLogging(h http.Handler) http.HandlerFunc {
+func WithLogging(h http.Handler) http.Handler {
 	logFn := func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		uri := r.URL //r.RequestURI
+		uri := r.URL
 		method := r.Method
 		//
 		responseData := &responseData{
@@ -51,6 +51,7 @@ func WithLogging(h http.Handler) http.HandlerFunc {
 			ResponseWriter: w,
 			responseData:   responseData,
 		}
+		// SLog.Infof("request header: %v", r.Header)
 		//
 		h.ServeHTTP(&lw, r)
 
