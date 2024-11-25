@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 	"runtime"
-	"time"
 
 	"github.com/shirou/gopsutil/v4/cpu"
 	"github.com/shirou/gopsutil/v4/mem"
@@ -56,7 +55,8 @@ func GenGopsStats() chan Metric {
 		}
 		result <- mm
 
-		cpu, _ := cpu.Percent(1*time.Second, true)
+		cpu, _ := cpu.Percent(0, true)
+
 		for i, c := range cpu {
 			m := Metric{
 				Name:  fmt.Sprintf("CPUutilization%d", i),

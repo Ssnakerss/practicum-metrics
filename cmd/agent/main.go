@@ -4,12 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
 	"sync"
-	"syscall"
 	"time"
 
+	"github.com/Ssnakerss/practicum-metrics/internal/app"
 	"github.com/Ssnakerss/practicum-metrics/internal/flags"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
@@ -45,13 +43,8 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	//Ждем сигнала окончаниея работы
-	go func() {
-		exit := make(chan os.Signal, 1)
-		signal.Notify(exit, os.Interrupt, syscall.SIGTERM)
-		<-exit
-		logger.SLog.Info("exit signal received")
-		cancel()
-	}()
+
+	go app.CtrlC(ctx, cancel)
 
 	//Собираем метрики по таймеру
 	g, gCtx := errgroup.WithContext(ctx)

@@ -106,7 +106,8 @@ func (filest *FileStorage) Write(m *metric.Metric) error {
 	}
 	//Выравниваем длинну данных
 	s := string(data)
-	tools.PadRight(&s, " ", chunckSize)
+	// tools.PadRight(&s, " ", chunckSize)
+	tools.PadRight2(&s, " ", int(chunckSize))
 	data = []byte(s)
 
 	writer := bufio.NewWriter(file)

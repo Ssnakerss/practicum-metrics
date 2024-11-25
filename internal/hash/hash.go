@@ -48,6 +48,8 @@ func HashHandle(next http.Handler) http.Handler {
 			//Проверяем хэш запроса
 			//Прочитали весь боди запроса - надо потом вернуть обратно
 			reqBody, err := io.ReadAll(r.Body)
+			//Возвращаем боди обратно в запрос
+			r.Body = io.NopCloser(bytes.NewBuffer(reqBody))
 			if err != nil {
 				//Если ошибка - передаем управление дальше и возвращаемся
 				logger.SLog.Errorw("HashHandle read body", "error", err)
@@ -69,8 +71,6 @@ func HashHandle(next http.Handler) http.Handler {
 				w.WriteHeader(http.StatusBadRequest)
 				return
 			}
-			//Возвращаем боди обратно в запрос
-			r.Body = io.NopCloser(bytes.NewBuffer(reqBody))
 		}
 
 		//Обрабатываем ответ

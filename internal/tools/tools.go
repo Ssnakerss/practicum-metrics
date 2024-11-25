@@ -3,6 +3,7 @@ package tools
 import (
 	"log"
 	"reflect"
+	"strings"
 )
 
 func ExtendedPrint(v interface{}) {
@@ -35,5 +36,11 @@ func PadRight(s *string, pad string, ln int64) {
 	}
 	for len(*s) < int(ln) {
 		*s = *s + pad
+	}
+}
+
+func PadRight2(s *string, pad string, ln int) {
+	if len(*s) < ln {
+		*s = *s + strings.Repeat(pad, ln-len(*s))
 	}
 }

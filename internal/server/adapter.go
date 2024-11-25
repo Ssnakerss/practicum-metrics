@@ -1,4 +1,4 @@
-package app
+package server
 
 import (
 	"context"
@@ -30,7 +30,7 @@ func InitAdapter(ctx context.Context) (*dtadapter.Adapter, error) {
 			// 	"dsn", flags.Cfg.DatabaseDSN,
 			// 	"error", err)
 		}
-		//Очищаем таблицу   -  не понятно надо ли это	для тестов
+		//Очищаем таблицу
 		st.Truncate()
 		logger.SLog.Info("using db as storage")
 	} else {
