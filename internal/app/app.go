@@ -9,6 +9,9 @@ import (
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 )
 
+//create channel for exit signal
+//wait for signal and canlcel global context
+
 func CtrlC(ctx context.Context,
 	cancel context.CancelFunc,
 	ff ...func(),
