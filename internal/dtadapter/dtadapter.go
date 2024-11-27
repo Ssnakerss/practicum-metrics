@@ -132,13 +132,11 @@ func (da *Adapter) WriteAll(mm *[]metric.Metric) error {
 
 func (da *Adapter) Read(m *metric.Metric) error {
 	return execRWWtihRetry(da.Ds.Read)(m)
-	// return da.Ds.Read(m)
 }
 
 // Read slice of  metrics from storage
 func (da *Adapter) ReadAll(mm *[]metric.Metric) error {
 	_, err := execRWAllWtihRetry(da.Ds.ReadAll)(mm)
-	// _, err := da.Ds.ReadAll(mm)
 	return err
 }
 
@@ -212,13 +210,6 @@ func (da *Adapter) checkRequestAndGetMetric(r *http.Request) (*metric.Metric, er
 	if err != nil {
 		return nil, fmt.Errorf("cannot read request body: %w", err)
 	}
-	//Decompression -> TODO: Change to MiddleWare
-	// if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
-	// 	body, err = compression.Decompress(body)
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf("fail to un-gzip body %w", err)
-	// 	}
-	// }
 
 	var mi metric.MetricJSON
 	err = json.Unmarshal(body, &mi)

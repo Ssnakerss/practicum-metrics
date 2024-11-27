@@ -7,6 +7,7 @@ import (
 	"github.com/caarlos0/env/v6"
 )
 
+// Config contains application  configuration
 type Config struct {
 	//server params
 	StoreInterval   uint   `env:"STORE_INTERVAL"`
@@ -32,11 +33,14 @@ type Config struct {
 	Env string `env:"ENV"`
 }
 
+// Cfg - application configuration parameters read from command line or Env
 var Cfg Config
 
+// RetryInterval in time to repeat functions in case of connection  errors
 // Ингтервалы для повторений при ошибках соединения и ввода-вывода
 var RetryIntervals = []time.Duration{0, 1, 3, 5}
 
+// Read server config from commanline parameters or Env
 func ReadServerConfig() error {
 	//Сначала считаем командную строку если есть или заполним конфиг дефолтом
 
@@ -71,6 +75,7 @@ func ReadServerConfig() error {
 	return env.Parse(&Cfg)
 }
 
+// Read agent config from  commandline parameters or Env
 func ReadAgentConfig() error {
 	//Флаг -a=<ЗНАЧЕНИЕ> отвечает за адрес эндпоинта HTTP-сервера (по умолчанию localhost:8080)
 	flag.StringVar(&Cfg.EndPointAddress, "a", ":8080", "endpoint address")

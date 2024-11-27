@@ -13,6 +13,7 @@ var Log *zap.Logger = zap.NewNop()
 var SLog *zap.SugaredLogger = Log.Sugar()
 
 // Initialize инициализирует синглтон логера с необходимым уровнем логирования.
+// Initialize logger singletong with a given log level
 func Initialize(level string) error {
 	// преобразуем текстовый уровень логирования в zap.AtomicLevel
 	lvl, err := zap.ParseAtomicLevel(level)

@@ -3,12 +3,14 @@ package dtadapter
 import (
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
+	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 	"github.com/Ssnakerss/practicum-metrics/internal/storage"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/require"
@@ -164,4 +166,28 @@ func TestSetDataJSONHandler(t *testing.T) {
 		require.JSONEq(t, requestBody, string(b))
 	})
 
+}
+
+func Test_execRWAllWtihRetry(t *testing.T) {
+	tests := []struct {
+		name string
+		f    func(*[]metric.Metric) (int, error)
+		want error
+	}{
+		{
+			"success retry",
+			func(*[]metric.Metric) (int, error) {
+				return 0, nil
+			},
+			nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, got := execRWAllWtihRetry(tt.f)(nil)
+			if !errors.Is(got, tt.want) {
+				t.Errorf("execRWAllWtihRetry() = %f, want %f", got, tt.want)
+			}
+		})
+	}
 }
