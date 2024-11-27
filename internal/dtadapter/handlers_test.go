@@ -52,7 +52,10 @@ func ExampleAdapter_SetDataTextHandler() {
 	r.RequestURI = ""
 	r.Header.Set("Content-Type", "application/json")
 
-	resp, _ := http.DefaultClient.Do(r)
+	resp, err := http.DefaultClient.Do(r)
+	if err != nil {
+		panic(err)
+	}
 	defer resp.Body.Close()
 
 	fmt.Println(resp.StatusCode)
