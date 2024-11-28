@@ -20,6 +20,9 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
 }
 
+// handle to zip and unzip request body
+// check content content-encoding and then decompress is necessary
+// check if client supports gzip and then compress
 func GzipHandle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//Проверяем что в боди сжатое содержимое

@@ -15,6 +15,7 @@ import (
 	"github.com/go-resty/resty/v2"
 )
 
+// SendMetrics send slice of metrics to the server using worker pool
 func SendMetrics(ctx context.Context, mm []metric.Metric) {
 	sendChannel := make(chan []metric.Metric) //send channel for metrics
 	numWorkers := flags.Cfg.RateLimit
@@ -59,6 +60,10 @@ func sendWorker(ctx context.Context, dataChannel <-chan []metric.Metric, workerN
 	}
 }
 
+// SendWithRetry is used to send metrics with retry mechanism.
+// The function tries to send metrics and if it fails, it will retry after a certain delay specified in flags.RetryIntervals.
+// The retry count is incremented after each failed attempt.
+// If the retry count reaches the maximum or the context is cancelled, the function will stop retrying and return the error.
 func SendWithRetry(ctx context.Context, mm []metric.Metric, endpoint string) error {
 	//Отправляем метрики
 	//При ошибке -  пробуем еще раз с задержкой
@@ -83,6 +88,11 @@ func SendWithRetry(ctx context.Context, mm []metric.Metric, endpoint string) err
 	return err
 }
 
+// ReportMetrics is used to convert metrics to JSON format and send them in batches. It takes two parameters: mm (slice of metrics) and serverAddr (server address to send metrics to).
+// The function first checks if there are any metrics to send.
+// If there are, it converts each metric to MetricJSON format and appends it to mcsj.
+// Then it marshals the mcsj slice into a JSON byte array.
+// If there is an error during marshaling, it returns the error.
 func ReportMetrics(mm []metric.Metric, serverAddr string) error {
 	//Проверяем есть ли данные для отравки
 	if len(mm) > 0 {

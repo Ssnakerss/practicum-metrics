@@ -12,6 +12,7 @@ import (
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 )
 
+// MakeSHA prepare sha encoded string using provided key value
 func MakeSHA256(b []byte, key string) (string, error) {
 	hash := ``
 	if key != `` {
@@ -34,6 +35,7 @@ func (cw copyWriter) Write(b []byte) (int, error) {
 	return cw.Writer.Write(b)
 }
 
+// Hash handle is a middleware to set HashSHA256 request header with encoded body value
 func HashHandle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//Есди ключ не задан - ничего не делаем

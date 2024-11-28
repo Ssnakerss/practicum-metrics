@@ -10,6 +10,7 @@ import (
 	"github.com/shirou/gopsutil/v4/mem"
 )
 
+// PollMemStatsMetrics collect  Memstat metrics using provided list of target items
 func PollMemStatsMetrics(metricsToGather []string, result *[]Metric) error {
 	var memoryStat runtime.MemStats
 	runtime.ReadMemStats(&memoryStat)
@@ -40,6 +41,7 @@ func PollMemStatsMetrics(metricsToGather []string, result *[]Metric) error {
 	return nil
 }
 
+// PollGopsMetrics collect GOPS metrics accoring to provided items list
 func PollGopsMetrics(metricsToGather []string, result *[]Metric) error {
 	v, _ := mem.VirtualMemory()
 	mm := []Metric{

@@ -30,7 +30,8 @@ func (da *Adapter) New(ds storage.DataStorage) {
 //TODO: переписать execRWWithRetry & execRWAllWithRetry в одну функцию
 //Заменить Read(m *metric.Metric) -> Read(mm *[]metric.Metric),  избавиться от ReadAll/WriteAll
 
-// Функция-обертка для  повторного вызова при возникновении ошибок
+// wrapper functino to retry function call in case of error
+// handles Read-Write methods for single metric
 func execRWWtihRetry(f func(*metric.Metric) error) func(*metric.Metric) error {
 	return func(m *metric.Metric) error {
 		err := errors.New("trying to exec")
@@ -60,7 +61,8 @@ func execRWWtihRetry(f func(*metric.Metric) error) func(*metric.Metric) error {
 	}
 }
 
-// Функция-обертка для  повторного вызова при возникновении ошибок
+// wrapper functino to retry function call in case of error
+// handles ReadAll - WriteAll methods for metric slice
 func execRWAllWtihRetry(f func(*[]metric.Metric) (int, error)) func(*[]metric.Metric) (int, error) {
 	return func(m *[]metric.Metric) (int, error) {
 		err := errors.New("trying to exec")
@@ -90,8 +92,8 @@ func execRWAllWtihRetry(f func(*[]metric.Metric) (int, error)) func(*[]metric.Me
 	}
 }
 
-// Пишем в хранилище
-// Если интервал синхронизации == 0 - пишем сразу и во второе
+// Write single metric to storage
+// IF sync interval ==0 - write to sync sto rage
 func (da *Adapter) Write(m *metric.Metric) error {
 	//Вызов записи в базу через ф-ю с повторами при ошибках
 	err := execRWWtihRetry(da.Ds.Write)(m)
@@ -107,6 +109,8 @@ func (da *Adapter) Write(m *metric.Metric) error {
 	return nil
 }
 
+// Write slice of  metrics to storage
+// IF sync interval ==0 - write to sync sto rage
 func (da *Adapter) WriteAll(mm *[]metric.Metric) error {
 	//Вызов записи в базу через ф-ю с повторами при ошибках
 	if _, err := execRWAllWtihRetry(da.Ds.WriteAll)(mm); err != nil {
@@ -124,20 +128,21 @@ func (da *Adapter) WriteAll(mm *[]metric.Metric) error {
 	return nil
 }
 
+//Read single metric from storage
+
 func (da *Adapter) Read(m *metric.Metric) error {
 	return execRWWtihRetry(da.Ds.Read)(m)
-	// return da.Ds.Read(m)
 }
 
+// Read slice of  metrics from storage
 func (da *Adapter) ReadAll(mm *[]metric.Metric) error {
 	_, err := execRWAllWtihRetry(da.Ds.ReadAll)(mm)
-	// _, err := da.Ds.ReadAll(mm)
 	return err
 }
 
-// Синхронизация записи
-// Если интервал == 0 - синхронная запись во второе хранилище через метод da.Write
-// Если интревал > 0 - запускаем горутину с копированием состояния
+// Write sync
+// If sync interval == 0 - write to sync storage using da.Write
+// If sync interval > 0 - start gorouting to copy state
 func (da *Adapter) StartSync(interval uint, dst storage.DataStorage) {
 	da.SyncStorage = dst
 	da.syncMode = (interval == 0)
@@ -153,6 +158,7 @@ func (da *Adapter) StartSync(interval uint, dst storage.DataStorage) {
 	}()
 }
 
+// Perfom data sync between  storages
 func (da *Adapter) DoSync() {
 	if da.SyncStorage != nil {
 		//Надо почистить перед записью!!!
@@ -162,7 +168,7 @@ func (da *Adapter) DoSync() {
 	}
 }
 
-// Копирование состояния хранилища
+// Copy storage state to another storage
 func (da *Adapter) CopyState(src storage.DataStorage, dst storage.DataStorage) error {
 	mm := make([]metric.Metric, 0)
 	readcnt, err := src.ReadAll(&mm)
@@ -204,13 +210,6 @@ func (da *Adapter) checkRequestAndGetMetric(r *http.Request) (*metric.Metric, er
 	if err != nil {
 		return nil, fmt.Errorf("cannot read request body: %w", err)
 	}
-	//Decompression -> TODO: Change to MiddleWare
-	// if strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
-	// 	body, err = compression.Decompress(body)
-	// 	if err != nil {
-	// 		return nil, fmt.Errorf("fail to un-gzip body %w", err)
-	// 	}
-	// }
 
 	var mi metric.MetricJSON
 	err = json.Unmarshal(body, &mi)
