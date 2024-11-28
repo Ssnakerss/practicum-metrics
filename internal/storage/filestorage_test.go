@@ -8,13 +8,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestStorage_CounterWriteRead(t *testing.T) {
+func TestFileStorage_CounterWriteRead(t *testing.T) {
 	f := FileStorage{}
-	f.New(context.TODO(), "testfile.txt")
+	f.New(context.Background(), "testfile.txt")
 	f.Truncate()
-	// f := MemStorage{}
-	// f.New()
-
 	t.Run("counter write read test", func(t *testing.T) {
 		cm := metric.Metric{
 			Name:    "testCounter",
@@ -43,12 +40,10 @@ func TestStorage_CounterWriteRead(t *testing.T) {
 
 }
 
-func TestStorage_GaugeWriteRead(t *testing.T) {
-	// f := FileStorage{}
-	// f.New("testfile.txt")
-	// f.Truncate()
-	f := MemStorage{}
-	f.New(context.TODO())
+func TestFileStorage_GaugeWriteRead(t *testing.T) {
+	f := FileStorage{}
+	f.New(context.Background(), "testfile.txt")
+	f.Truncate()
 
 	t.Run("gauge write read test", func(t *testing.T) {
 		m := metric.Metric{

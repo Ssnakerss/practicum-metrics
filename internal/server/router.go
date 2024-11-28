@@ -1,4 +1,4 @@
-package app
+package server
 
 import (
 	"net/http"
@@ -8,6 +8,9 @@ import (
 	"github.com/Ssnakerss/practicum-metrics/internal/hash"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+
+	_ "net/http/pprof"
 )
 
 func NewRouter(da *dtadapter.Adapter) *chi.Mux {
@@ -18,6 +21,9 @@ func NewRouter(da *dtadapter.Adapter) *chi.Mux {
 	r.Use(logger.WithLogging)
 	r.Use(compression.GzipHandle)
 	r.Use(hash.HashHandle)
+
+	//Добваляем обработчики для pprof
+	r.Mount("/debug", middleware.Profiler())
 
 	r.Get("/", http.HandlerFunc(da.MainPage))
 

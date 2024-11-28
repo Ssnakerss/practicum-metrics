@@ -27,6 +27,9 @@ type Config struct {
 	//Количество исходящих запросо к серверу
 	//По имуолчанию 1 - отправлять одним пакетом
 	RateLimit int `env:"RATE_LIMIT"`
+
+	//Среда - окружение разроботка или продакшан
+	Env string `env:"ENV"`
 }
 
 var Cfg Config
@@ -56,8 +59,11 @@ func ReadServerConfig() error {
 	flag.BoolVar(&Cfg.Restore, "r", true, "restore data on startup")
 
 	//Флаг -d=<значение> -  адрес подключения к БД / string
-	// flag.StringVar(&Cfg.DatabaseDSN, "d", `postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable`, "database dsn adress")
+	//flag.StringVar(&Cfg.DatabaseDSN, "d", `postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable`, "database dsn adress")
 	flag.StringVar(&Cfg.DatabaseDSN, "d", `default`, "database dsn adress")
+
+	//Флаг -e=<ЗНАЧЕНИЕ> позволяет переопределять среду DEV или PROD
+	flag.StringVar(&Cfg.Env, "e", "PROD", "environment")
 
 	flag.Parse()
 	//Читаем переменные среды и если есть -  перезаписываем параметра ком строки или дефолты
@@ -76,6 +82,9 @@ func ReadAgentConfig() error {
 	flag.IntVar(&Cfg.ReportInterval, "r", 10, "report interval")
 	//Флаг -p=<ЗНАЧЕНИЕ> позволяет переопределять pollInterval — частоту опроса метрик из пакета runtime (по умолчанию 2 секунды).
 	flag.IntVar(&Cfg.PollInterval, "p", 2, "poll interval")
+
+	//Флаг -e=<ЗНАЧЕНИЕ> позволяет переопределять среду DEV или PROD
+	flag.StringVar(&Cfg.Env, "e", "PROD", "environment")
 
 	flag.Parse()
 
