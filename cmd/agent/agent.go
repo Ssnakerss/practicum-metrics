@@ -15,12 +15,28 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// global variable for build versioninfo
+var (
+	buildVersion string = "N/A"
+	buildDate    string = "N/A"
+	buildCommit  string = "N/A"
+)
+
+func PrintAppInfo() {
+	fmt.Println("Build version: ", buildVersion)
+	fmt.Println("Build date: ", buildDate)
+	fmt.Println("Build commit: ", buildCommit)
+
+}
+
 type sharedSlice struct {
 	m     sync.Mutex
 	Slice []metric.Metric
 }
 
 func main() {
+	//Print app build info
+	PrintAppInfo()
 
 	// cоздаем логгер ZAP
 	// не получится - проолжать не имеет смысла, fatal
