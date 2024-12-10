@@ -152,7 +152,7 @@ func (dbs *DBStorage) WriteAll(mm *([]metric.Metric)) (int, error) {
 	}
 
 	for _, m := range *mm {
-		_, err := tx.Exec(sql,
+		_, err = tx.Exec(sql,
 			m.Name,
 			m.Type,
 			m.Gauge,
@@ -207,7 +207,7 @@ func (dbs *DBStorage) ReadAll(mm *([]metric.Metric)) (int, error) {
 
 	for rows.Next() {
 		m := metric.Metric{}
-		if err := rows.Scan(&m.Name, &m.Type, &m.Gauge, &m.Counter); err != nil {
+		if err = rows.Scan(&m.Name, &m.Type, &m.Gauge, &m.Counter); err != nil {
 			return cnt, errSelect(ctx, "scan", fmt.Errorf("db scan row error: %w", err))
 		} else {
 			*mm = append(*mm, m)
