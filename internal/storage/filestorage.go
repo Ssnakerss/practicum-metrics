@@ -70,7 +70,8 @@ func (filest *FileStorage) Write(m *metric.Metric) error {
 				break
 			}
 			next = scanner.Scan()
-			metric.ClearMetric(&mm)
+
+			mm.Clear()
 		}
 	}
 
@@ -162,7 +163,7 @@ func (filest *FileStorage) Read(m *metric.Metric) error {
 			return nil
 		}
 		next = scanner.Scan()
-		metric.ClearMetric(&mm)
+		mm.Clear()
 	}
 	return nil
 }

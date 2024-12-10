@@ -7,11 +7,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Ssnakerss/practicum-metrics/internal/agent"
 	"github.com/Ssnakerss/practicum-metrics/internal/app"
 	"github.com/Ssnakerss/practicum-metrics/internal/flags"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
-	"github.com/Ssnakerss/practicum-metrics/internal/report"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -77,7 +77,7 @@ func main() {
 				//Собираем метрики
 				mm.m.Lock()
 				logger.SLog.Infof("#%d poll  metrics", pollCount)
-				mm.Slice = metric.CollectMetrics(pollCount)
+				mm.Slice = agent.CollectMetrics(pollCount)
 				mm.m.Unlock()
 				pollCount++
 			}
@@ -100,7 +100,7 @@ func main() {
 				mm.m.Unlock()
 
 				//Отправляем метрики
-				report.SendMetrics(gCtx, metricsToSend)
+				agent.SendMetrics(gCtx, metricsToSend)
 			}
 		}
 	})
