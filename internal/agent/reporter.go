@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Ssnakerss/practicum-metrics/internal/app"
 	"github.com/Ssnakerss/practicum-metrics/internal/compression"
-	"github.com/Ssnakerss/practicum-metrics/internal/flags"
+
 	"github.com/Ssnakerss/practicum-metrics/internal/hash"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
@@ -16,9 +17,9 @@ import (
 )
 
 // SendMetrics send slice of metrics to the server using worker pool
-func SendMetrics(ctx context.Context, mm []metric.Metric) {
+func (a *Agent) SendMetrics(ctx context.Context, mm []metric.Metric) {
 	sendChannel := make(chan []metric.Metric) //send channel for metrics
-	numWorkers := flags.Cfg.RateLimit
+	numWorkers := a.c.RateLimit
 	if numWorkers <= 0 {
 		numWorkers = 1
 	}
@@ -29,7 +30,7 @@ func SendMetrics(ctx context.Context, mm []metric.Metric) {
 	batchSize := len(mm) / numWorkers
 
 	//Запускаем воркеров, которые будут отправлять метрики
-	createPool(ctx, sendChannel, numWorkers)
+	a.createPool(ctx, sendChannel, numWorkers)
 
 	//Отправляем метрики в канал порциями
 	for i := 0; i < len(mm); i = i + batchSize {
@@ -42,16 +43,16 @@ func SendMetrics(ctx context.Context, mm []metric.Metric) {
 	close(sendChannel)
 }
 
-func createPool(ctx context.Context, sendChannel <-chan []metric.Metric, numWorkers int) {
+func (a *Agent) createPool(ctx context.Context, sendChannel <-chan []metric.Metric, numWorkers int) {
 	for i := 0; i < numWorkers; i++ {
-		go sendWorker(ctx, sendChannel, i)
+		go a.sendWorker(ctx, sendChannel, i)
 	}
 }
 
-func sendWorker(ctx context.Context, dataChannel <-chan []metric.Metric, workerNum int) {
+func (a *Agent) sendWorker(ctx context.Context, dataChannel <-chan []metric.Metric, workerNum int) {
 	for metrics := range dataChannel {
 		logger.SLog.Infof("worker %d start sending %d metrics", workerNum, len(metrics))
-		err := SendWithRetry(ctx, metrics, flags.Cfg.EndPointAddress)
+		err := SendWithRetry(ctx, metrics, a.c.EndPointAddress, a.c.Key)
 		if err != nil {
 			logger.SLog.Errorf("worker %d failed to send metrics: %v", workerNum, err)
 		} else {
@@ -64,26 +65,26 @@ func sendWorker(ctx context.Context, dataChannel <-chan []metric.Metric, workerN
 // The function tries to send metrics and if it fails, it will retry after a certain delay specified in flags.RetryIntervals.
 // The retry count is incremented after each failed attempt.
 // If the retry count reaches the maximum or the context is cancelled, the function will stop retrying and return the error.
-func SendWithRetry(ctx context.Context, mm []metric.Metric, endpoint string) error {
+func SendWithRetry(ctx context.Context, mm []metric.Metric, endpoint string, hashKey string) error {
 	//Отправляем метрики
 	//При ошибке -  пробуем еще раз с задержкой
 	err := errors.New("trying to send")
 	retry := 0
 	for err != nil {
 		//Делаем задержку в случае неудачной попытки отправки метрик
-		time.Sleep(time.Duration(flags.RetryIntervals[retry]) * time.Second)
-		err = ReportMetrics(mm, endpoint)
+		time.Sleep(time.Duration(app.RetryIntervals[retry]) * time.Second)
+		err = ReportMetrics(mm, endpoint, hashKey)
 		//Если удалось отправить
 		if err == nil ||
 			//или закончилось количество  попыток
-			retry == len(flags.RetryIntervals)-1 ||
+			retry == len(app.RetryIntervals)-1 ||
 			//или отмена контекста
 			ctx.Err() != nil {
 			//то выходим из цикла
 			break
 		}
 		retry++
-		logger.SLog.Warnf("send error, retry in %d seconds", flags.RetryIntervals[retry])
+		logger.SLog.Warnf("send error, retry in %d seconds", app.RetryIntervals[retry])
 	}
 	return err
 }
@@ -93,7 +94,7 @@ func SendWithRetry(ctx context.Context, mm []metric.Metric, endpoint string) err
 // If there are, it converts each metric to MetricJSON format and appends it to mcsj.
 // Then it marshals the mcsj slice into a JSON byte array.
 // If there is an error during marshaling, it returns the error.
-func ReportMetrics(mm []metric.Metric, serverAddr string) error {
+func ReportMetrics(mm []metric.Metric, serverAddr string, hashKey string) error {
 	//Проверяем есть ли данные для отравки
 	if len(mm) > 0 {
 		// Для отправки метрик в формате JSON батчами
@@ -108,7 +109,7 @@ func ReportMetrics(mm []metric.Metric, serverAddr string) error {
 		if err != nil {
 			return fmt.Errorf("error marshal []metricJSON %v", mcsj)
 		}
-		return httpSend(body, flags.Cfg.Key, url)
+		return httpSend(body, hashKey, url)
 	}
 	return nil
 }

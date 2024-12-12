@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Ssnakerss/practicum-metrics/internal/app"
 	"github.com/Ssnakerss/practicum-metrics/internal/storage"
 )
 
@@ -34,7 +35,7 @@ func ExampleAdapter_SetDataTextHandler() {
 	da := Adapter{}
 	memst := &storage.MemStorage{}
 	memst.New(context.TODO())
-	da.New(memst)
+	da.New(memst, app.RetryIntervals)
 
 	handler := http.HandlerFunc(da.SetDataJSONHandler)
 	srv := httptest.NewServer(handler)
