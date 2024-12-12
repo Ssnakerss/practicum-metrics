@@ -2,81 +2,8 @@ package metric
 
 import (
 	"fmt"
-	"math/rand/v2"
 	"strconv"
 	"strings"
-)
-
-var MemStatsMetrics = []string{
-	"Alloc",
-	"BuckHashSys",
-	"Frees",
-	"GCCPUFraction",
-	"GCSys",
-	"HeapAlloc",
-	"HeapIdle",
-	"HeapInuse",
-	"HeapObjects",
-	"HeapReleased",
-	"HeapSys",
-	"LastGC",
-	"Lookups",
-	"MCacheInuse",
-	"MCacheSys",
-	"MSpanInuse",
-	"MSpanSys",
-	"Mallocs",
-	"NextGC",
-	"NumForcedGC",
-	"NumGC",
-	"OtherSys",
-	"PauseTotalNs",
-	"StackInuse",
-	"StackSys",
-	"Sys",
-	"TotalAlloc",
-}
-
-var GopsMetrics = []string{
-	"TotalMemory",
-	"FreeMemery",
-	"CPUutilization1",
-}
-
-type etcMetrics struct {
-	MType string
-	MFunc func(p ...int) string
-}
-
-var ExtraMetrics = map[string]etcMetrics{
-	"PollCount": {
-		MType: "counter",
-		MFunc: func(p ...int) string {
-			return strconv.Itoa(p[0])
-		},
-	},
-	"RandomValue": {
-		MType: "gauge",
-		MFunc: func(p ...int) string {
-			return strconv.FormatFloat(rand.Float64(), 'f', -1, 64)
-		},
-	},
-}
-
-type (
-	MetricJSON struct {
-		ID    string   `json:"id"`              // имя метрики
-		MType string   `json:"type"`            // параметр, принимающий значение gauge или counter
-		Value *float64 `json:"value,omitempty"` // значение метрики в случае передачи gauge
-		Delta *int64   `json:"delta,omitempty"` // значение метрики в случае передачи counter
-	}
-
-	Metric struct { // Оставляем для обратной совместимости
-		Name    string  `json:"name"`              //ID
-		Type    string  `json:"type"`              //MType
-		Gauge   float64 `json:"gauge,omitempty"`   //Value
-		Counter int64   `json:"counter,omitempty"` //Delta
-	}
 )
 
 // Convert metric from [S]torage format to [I]nterface format
@@ -114,23 +41,6 @@ func ConvertMetricI2S(mi *MetricJSON) *Metric {
 	return &ms
 }
 
-func CopyMetric(src *Metric) *Metric {
-	m := Metric{
-		Name:    src.Name,
-		Type:    src.Type,
-		Counter: src.Counter,
-		Gauge:   src.Gauge,
-	}
-	return &m
-}
-
-func ClearMetric(m *Metric) {
-	m.Name = ""
-	m.Type = ""
-	m.Gauge = 0
-	m.Counter = 0
-}
-
 // IsValid - Check metric name and type by allowed values
 func IsValid(mType string, mValue string) bool {
 	mType = strings.ToLower(mType)
@@ -145,6 +55,22 @@ func IsValid(mType string, mValue string) bool {
 		}
 	}
 	return false
+}
+func (m *Metric) Copy() *Metric {
+	cpm := Metric{
+		Name:    m.Name,
+		Type:    m.Type,
+		Counter: m.Counter,
+		Gauge:   m.Gauge,
+	}
+	return &cpm
+}
+
+func (m *Metric) Clear() {
+	m.Name = ""
+	m.Type = ""
+	m.Gauge = 0
+	m.Counter = 0
 }
 
 // Value -  current metric value regardless type

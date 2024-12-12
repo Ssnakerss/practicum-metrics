@@ -70,7 +70,8 @@ func (filest *FileStorage) Write(m *metric.Metric) error {
 				break
 			}
 			next = scanner.Scan()
-			metric.ClearMetric(&mm)
+
+			mm.Clear()
 		}
 	}
 
@@ -82,13 +83,13 @@ func (filest *FileStorage) Write(m *metric.Metric) error {
 	//Добавлять ли перевод строки. Если заменяем метрику -  то не надо
 	if pos == -1 {
 		//Не нашли метрику -  пишем в конец файла
-		if _, err := file.Seek(0, 2); err != nil {
+		if _, err = file.Seek(0, 2); err != nil {
 			return err
 		}
 	} else {
 		//Нашли метрику - перезаписываем ее
 		//Ставим курсор на найденную метрику
-		if _, err := file.Seek(pos*(chunckSize+1), 0); err != nil {
+		if _, err = file.Seek(pos*(chunckSize+1), 0); err != nil {
 			return err
 		}
 		newLine = false
@@ -162,7 +163,7 @@ func (filest *FileStorage) Read(m *metric.Metric) error {
 			return nil
 		}
 		next = scanner.Scan()
-		metric.ClearMetric(&mm)
+		mm.Clear()
 	}
 	return nil
 }

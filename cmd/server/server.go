@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -12,7 +13,24 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
+// global variable for build versioninfo
+var (
+	buildVersion string = "N/A"
+	buildDate    string = "N/A"
+	buildCommit  string = "N/A"
+)
+
+func PrintAppInfo() {
+	fmt.Println("Build version: ", buildVersion)
+	fmt.Println("Build date: ", buildDate)
+	fmt.Println("Build commit: ", buildCommit)
+
+}
+
 func main() {
+	//Print app build info
+	PrintAppInfo()
+
 	// cоздаем логгер ZAP
 	// не получится - проолжать не имеет смысла, fatal
 	if err := logger.Initialize("DEBUG"); err != nil {
