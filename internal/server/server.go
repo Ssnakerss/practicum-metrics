@@ -55,6 +55,9 @@ func (s *Server) Run(ctx context.Context) {
 	})
 
 	if err := g.Wait(); err != nil {
+		s.l.Info("performing pre-shutdown tasks")
+		s.A.DoSync()
+		s.A.Ds.Close()
 		s.l.Warnw("server stopped", "error", err)
 	}
 }

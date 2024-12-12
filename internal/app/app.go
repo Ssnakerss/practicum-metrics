@@ -31,6 +31,7 @@ func SysCallProcess(ctx context.Context,
 	case <-ctx.Done():
 		logger.Log.Info("shutting down")
 	}
+	logger.SLog.Info("performing pre-shutdown tasks")
 	for _, f := range ff {
 		f()
 	}
