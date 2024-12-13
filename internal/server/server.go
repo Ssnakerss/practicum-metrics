@@ -37,7 +37,6 @@ func New(ctx context.Context, l *zap.SugaredLogger) (*Server, error) {
 		Addr:    c.EndPointAddress,
 		Handler: r,
 	}
-
 	return &Server{c, l, a, s}, nil
 }
 

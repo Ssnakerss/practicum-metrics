@@ -55,7 +55,7 @@ func main() {
 		logger.SLog.Fatalf("cannot create server: %v", err)
 	}
 	//start  Listening for SysCal events
-	go app.SysCallProcess(ctx, cancel, s.A.DoSync, s.A.Ds.Close)
+	go app.SysCallProcess(ctx, cancel) //, s.A.DoSync, s.A.Ds.Close)
 
 	//Starting server
 	s.Run(ctx)
