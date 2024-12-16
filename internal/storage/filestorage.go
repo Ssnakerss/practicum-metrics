@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
-	"github.com/Ssnakerss/practicum-metrics/internal/tools"
 )
 
 type FileStorage struct {
@@ -107,8 +106,8 @@ func (filest *FileStorage) Write(m *metric.Metric) error {
 	}
 	//Выравниваем длинну данных
 	s := string(data)
-	// tools.PadRight(&s, " ", chunckSize)
-	tools.PadRight2(&s, " ", int(chunckSize))
+
+	PadRight(&s, " ", int(chunckSize))
 	data = []byte(s)
 
 	writer := bufio.NewWriter(file)
@@ -199,4 +198,10 @@ func (filest *FileStorage) CheckStorage() error {
 
 func (filest *FileStorage) Close() {
 
+}
+
+func PadRight(s *string, pad string, ln int) {
+	if len(*s) < ln {
+		*s = *s + strings.Repeat(pad, ln-len(*s))
+	}
 }

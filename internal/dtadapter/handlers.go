@@ -43,6 +43,7 @@ func (da *Adapter) SetDataJSONSliceHandler(w http.ResponseWriter, r *http.Reques
 	mcsj := make([]metric.MetricJSON, 0)
 	mcs := make([]metric.Metric, 0)
 	if err := json.NewDecoder(r.Body).Decode(&mcsj); err != nil {
+		logger.SLog.Warn("cannot convert json to []metric, check rsa")
 		http.Error(w, "cannot convert json to []metric", http.StatusBadRequest)
 		return
 	}
@@ -52,6 +53,7 @@ func (da *Adapter) SetDataJSONSliceHandler(w http.ResponseWriter, r *http.Reques
 	//Записываем получившийся массив в хранилище
 	err := da.WriteAll(&mcs)
 	if err != nil {
+		logger.SLog.Error("error saving to storage")
 		http.Error(w, "error saving to storage", http.StatusInternalServerError)
 		return
 	}
