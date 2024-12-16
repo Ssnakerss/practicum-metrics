@@ -1,6 +1,7 @@
 package encrypt
 
 import (
+	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/sha256"
@@ -8,7 +9,11 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
+
+	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 )
 
 type Coder struct {
@@ -19,11 +24,11 @@ type Coder struct {
 func (c *Coder) GenerateKeys(pathToPublicKey string, pathToPrivateKey string) error {
 	whoAmI := "encrypt.GenerateKeys" // имя функции, которая вызывается
 
-	// создаём новый приватный RSA-ключ длиной 4096 бит
+	// создаём новый приватный RSA-ключ длиной 8192 бит
 	// обратите внимание, что для генерации ключа и сертификата
 	// используется rand.Reader в качестве источника случайных данных
 	var err error
-	c.privateKey, err = rsa.GenerateKey(rand.Reader, 4096)
+	c.privateKey, err = rsa.GenerateKey(rand.Reader, 8192)
 	if err != nil {
 		return fmt.Errorf("%s: %f", whoAmI, err)
 	}
@@ -94,7 +99,6 @@ func (c *Coder) LoadPublicKey(pathToPublicKey string) error {
 		if err != nil {
 			return fmt.Errorf("%s: %f", whoAmI, err)
 		}
-
 		return nil
 	} else {
 		return fmt.Errorf("%s: %f", whoAmI, errors.New("path public key not defined"))
@@ -123,7 +127,7 @@ func (c *Coder) Encrypt(data []byte) ([]byte, error) {
 func (c *Coder) Decrypt(data []byte) ([]byte, error) {
 	whoAmI := "encrypt.Decrypt" // имя функции, которая вызывается
 
-	if c.publicKey != nil {
+	if c.privateKey != nil {
 		eData, err := rsa.DecryptOAEP(
 			sha256.New(),
 			nil,
@@ -137,6 +141,29 @@ func (c *Coder) Decrypt(data []byte) ([]byte, error) {
 		return eData, nil
 	}
 	return nil, fmt.Errorf("%s: %f", whoAmI, errors.New("private key not set"))
+}
+
+func (c *Coder) Handle(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "POST" {
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			data, err := c.Decrypt(body)
+			if err != nil {
+				logger.SLog.Warn("decryption", "error", err)
+				//return body back without decryption
+				r.Body = io.NopCloser(bytes.NewBuffer(body))
+			} else {
+				///pu decrypted body back
+				r.Body = io.NopCloser(bytes.NewBuffer(data))
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
+
 }
 
 //----------------------------------------------

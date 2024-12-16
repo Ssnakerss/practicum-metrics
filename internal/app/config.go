@@ -17,6 +17,8 @@ type commonConfig struct {
 	EndPointAddress string `env:"ADDRESS"`
 	//Ключ для SHA256 хэширования
 	Key string `env:"KEY"`
+	//Путь дофайла с Ключом для шифрования
+	CryptoKey string `env:"CRYPTO_KEY"`
 
 	//Среда - окружение разроботка или продакшан
 	Env string `env:"ENV"`
@@ -34,10 +36,11 @@ type ServerConfig struct {
 type AgentConfig struct {
 	//Agent params
 	//REPORT_INTERVAL позволяет переопределять reportInterval.
+	// -r позволяет переопределять reportInterval — частоту отправки метрик на сервер (по умолчанию 10 секунд).
 	ReportInterval int `env:"REPORT_INTERVAL"`
 	//POLL_INTERVAL позволяет переопределять pollInterval.
 	PollInterval int `env:"POLL_INTERVAL"`
-	//Количество исходящих запросов к серверу
+	// -l=<ЗНАЧЕНИЕ> отвечает за количество исходящих запросов к серверу
 	//По имуолчанию 1 - отправлять одним пакетом
 	RateLimit int `env:"RATE_LIMIT"`
 	commonConfig
@@ -50,6 +53,8 @@ func (c *commonConfig) Read() error {
 	//`env:"ADDRESS"`
 	flag.StringVar(&c.EndPointAddress, "a", ":8080", "endpoint address")
 	flag.StringVar(&c.Key, "k", ``, "sha256 key")
+
+	flag.StringVar(&c.CryptoKey, "crypto-key", ``, "rsa key file path")
 
 	//Флаг -e=<ЗНАЧЕНИЕ> позволяет переопределять среду DEV или PROD
 	flag.StringVar(&c.Env, "e", "PROD", "environment")

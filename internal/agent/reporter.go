@@ -121,12 +121,19 @@ func (a *Agent) ReportMetrics(mm []metric.Metric) error {
 // потом отправляем
 func (a *Agent) httpSend(body []byte) error {
 	//сначала кодируем если заданы ключи.
+	b, err := a.e.Encrypt(body)
+	if err == nil {
+		body = b
+	} else {
+		a.l.Warnf("error encrypt body: %s", err.Error())
+	}
 
 	// посчитаем подпись если задан ключ
 	hash, err := hash.MakeSHA256(body, a.c.Key)
 	if err != nil {
 		return err
 	}
+
 	//Сжимаем боди гзипом
 	bgzip, err := compression.Compress(body)
 	if err != nil {

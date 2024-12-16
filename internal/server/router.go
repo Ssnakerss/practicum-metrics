@@ -6,6 +6,7 @@ import (
 	"github.com/Ssnakerss/practicum-metrics/internal/app"
 	"github.com/Ssnakerss/practicum-metrics/internal/compression"
 	"github.com/Ssnakerss/practicum-metrics/internal/dtadapter"
+	"github.com/Ssnakerss/practicum-metrics/internal/encrypt"
 	"github.com/Ssnakerss/practicum-metrics/internal/hash"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/go-chi/chi/v5"
@@ -24,6 +25,16 @@ func NewRouter(da *dtadapter.Adapter, c *app.ServerConfig) *chi.Mux {
 
 	h := hash.New(c.Key)
 	r.Use(h.Handle)
+
+	e := encrypt.Coder{}
+	err := e.LoadPrivateKey(c.CryptoKey)
+	if err == nil {
+		r.Use(e.Handle)
+		logger.SLog.Info("Private key loaded", e)
+
+	} else {
+		logger.SLog.Error("Can't load private key", "error", err)
+	}
 
 	//Добваляем обработчики для pprof
 	r.Mount("/debug", middleware.Profiler())

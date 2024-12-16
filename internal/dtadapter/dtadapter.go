@@ -218,5 +218,6 @@ func (da *Adapter) checkRequestAndGetMetric(r *http.Request) (*metric.Metric, er
 	if err != nil {
 		return nil, fmt.Errorf("fail to convert json: %w", err)
 	}
+
 	return metric.ConvertMetricI2S(&mi), nil
 }

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Ssnakerss/practicum-metrics/internal/app"
+	"github.com/Ssnakerss/practicum-metrics/internal/encrypt"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 	"go.uber.org/zap"
@@ -22,6 +23,8 @@ type Agent struct {
 	c *app.AgentConfig
 	l *zap.SugaredLogger
 	s sharedSlice
+	e encrypt.Coder //Кодировка
+
 }
 
 func New(l *zap.SugaredLogger) (*Agent, error) {
@@ -30,14 +33,17 @@ func New(l *zap.SugaredLogger) (*Agent, error) {
 		return nil, err
 	}
 
+	e := encrypt.Coder{}
+	e.LoadPublicKey(c.CryptoKey)
+
 	return &Agent{
 		c: c,
 		l: l,
+		e: e,
 	}, nil
 }
 
 func (a *Agent) Run(ctx context.Context) {
-
 	a.l.Infow("startup", "config", a.c)
 
 	pollTimeTicker := time.NewTicker(time.Duration(a.c.PollInterval) * time.Second)
