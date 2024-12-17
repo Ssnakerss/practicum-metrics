@@ -8,15 +8,22 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/Ssnakerss/practicum-metrics/internal/flags"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 )
+
+type Hash struct {
+	key string
+}
+
+func New(k string) *Hash {
+	return &Hash{key: k}
+}
 
 // MakeSHA prepare sha encoded string using provided key value
 func MakeSHA256(b []byte, key string) (string, error) {
 	hash := ``
 	if key != `` {
-		h := hmac.New(sha256.New, []byte(flags.Cfg.Key))
+		h := hmac.New(sha256.New, []byte(key))
 		_, err := h.Write(b)
 		if err != nil {
 			return ``, err
@@ -36,10 +43,10 @@ func (cw copyWriter) Write(b []byte) (int, error) {
 }
 
 // Hash handle is a middleware to set HashSHA256 request header with encoded body value
-func HashHandle(next http.Handler) http.Handler {
+func (h *Hash) Handle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		//Есди ключ не задан - ничего не делаем
-		if flags.Cfg.Key == `` {
+		if h.key == `` {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -59,7 +66,7 @@ func HashHandle(next http.Handler) http.Handler {
 				return
 			}
 
-			calcHash, err := MakeSHA256(reqBody, flags.Cfg.Key)
+			calcHash, err := MakeSHA256(reqBody, h.key)
 			if err != nil {
 				//Если ошибка - передаем управление дальше и возвращаемся
 				logger.SLog.Errorw("HashHandle MakeSHA256", "error", err)
@@ -81,7 +88,7 @@ func HashHandle(next http.Handler) http.Handler {
 		//Пишем боди в байты чтобы посчитать жэш
 		next.ServeHTTP(copyWriter{ResponseWriter: w, Writer: &body}, r)
 
-		hash, err := MakeSHA256(body.Bytes(), flags.Cfg.Key)
+		hash, err := MakeSHA256(body.Bytes(), h.key)
 		if err != nil {
 			logger.SLog.Error(err)
 		} else {

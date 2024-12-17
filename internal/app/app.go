@@ -12,7 +12,7 @@ import (
 //create channel for exit signal
 //wait for signal and canlcel global context
 
-func CtrlC(ctx context.Context,
+func SysCallProcess(ctx context.Context,
 	cancel context.CancelFunc,
 	ff ...func(),
 ) {
@@ -31,6 +31,7 @@ func CtrlC(ctx context.Context,
 	case <-ctx.Done():
 		logger.Log.Info("shutting down")
 	}
+	logger.SLog.Info("performing pre-shutdown tasks")
 	for _, f := range ff {
 		f()
 	}
