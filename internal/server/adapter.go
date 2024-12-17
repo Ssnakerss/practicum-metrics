@@ -19,7 +19,7 @@ func InitAdapter(ctx context.Context, c *app.ServerConfig) (*dtadapter.Adapter, 
 	var filest *storage.FileStorage
 
 	//Если задан DSN - используем БД в качестве хранилища
-	if c.DatabaseDSN != "default" {
+	if c.DatabaseDSN != "default" && c.DatabaseDSN != "" {
 		st = &storage.DBStorage{}
 
 		//Ставим таймаут 60 секунд
@@ -37,10 +37,10 @@ func InitAdapter(ctx context.Context, c *app.ServerConfig) (*dtadapter.Adapter, 
 		logger.SLog.Info("using memory as storage")
 
 		//Если задан путь к файлу - добавляем фаловое хранилище
-		if c.FileStoragePath != "default" {
+		if c.StoreFile != "default" {
 			filest = &storage.FileStorage{}
-			if err := filest.New(context.TODO(), c.FileStoragePath); err != nil {
-				logger.SLog.Warnw("file creation failure", "path", c.FileStoragePath, "err", err)
+			if err := filest.New(context.TODO(), c.StoreFile); err != nil {
+				logger.SLog.Warnw("file creation failure", "path", c.StoreFile, "err", err)
 			} else {
 				if c.Restore {
 					//Восстанавливаем значения из файла

@@ -19,10 +19,7 @@ type Server struct {
 
 func New(ctx context.Context, l *zap.SugaredLogger) (*Server, error) {
 	//Initialize and read server config.
-	c := &app.ServerConfig{}
-	if err := c.Read(); err != nil {
-		return nil, err
-	}
+	c := app.MakeServerConfig()
 
 	//Initialize adapter with server config.
 	a, err := InitAdapter(ctx, c)
@@ -34,7 +31,7 @@ func New(ctx context.Context, l *zap.SugaredLogger) (*Server, error) {
 	r := NewRouter(a, c)
 
 	s := &http.Server{
-		Addr:    c.EndPointAddress,
+		Addr:    c.Address,
 		Handler: r,
 	}
 	return &Server{c, l, a, s}, nil
@@ -44,7 +41,7 @@ func (s *Server) Run(ctx context.Context) {
 	g, gCtx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		s.l.Infow("startup", "config", s.c)
-		s.l.Infow("starting server at ", "address", s.c.EndPointAddress)
+		s.l.Infow("starting server at ", "address", s.c.Address)
 		return s.s.ListenAndServe() //Запускаем сервер
 	})
 	g.Go(func() error {

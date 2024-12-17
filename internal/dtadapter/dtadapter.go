@@ -145,7 +145,7 @@ func (da *Adapter) ReadAll(mm *[]metric.Metric) error {
 // Write sync
 // If sync interval == 0 - write to sync storage using da.Write
 // If sync interval > 0 - start gorouting to copy state
-func (da *Adapter) StartSync(interval uint, dst storage.DataStorage) {
+func (da *Adapter) StartSync(interval uint64, dst storage.DataStorage) {
 	da.SyncStorage = dst
 	da.syncMode = (interval == 0)
 	if da.syncMode {

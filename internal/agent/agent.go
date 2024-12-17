@@ -28,11 +28,7 @@ type Agent struct {
 }
 
 func New(l *zap.SugaredLogger) (*Agent, error) {
-	c := &app.AgentConfig{}
-	if err := c.Read(); err != nil {
-		return nil, err
-	}
-
+	c := app.MakeAgentConfig()
 	e := encrypt.Coder{}
 	e.LoadPublicKey(c.CryptoKey)
 

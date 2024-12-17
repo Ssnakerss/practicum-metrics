@@ -52,7 +52,7 @@ func (a *Agent) createPool(ctx context.Context, sendChannel <-chan []metric.Metr
 func (a *Agent) sendWorker(ctx context.Context, dataChannel <-chan []metric.Metric, workerNum int) {
 	for metrics := range dataChannel {
 		logger.SLog.Infof("worker %d start sending %d metrics", workerNum, len(metrics))
-		err := a.SendWithRetry(ctx, metrics, a.c.EndPointAddress, a.c.Key)
+		err := a.SendWithRetry(ctx, metrics, a.c.Address, a.c.Key)
 		if err != nil {
 			logger.SLog.Errorf("worker %d failed to send metrics: %v", workerNum, err)
 		} else {
@@ -140,7 +140,7 @@ func (a *Agent) httpSend(body []byte) error {
 		return err
 	}
 
-	url := "http://" + a.c.EndPointAddress + "/updates/"
+	url := "http://" + a.c.Address + "/updates/"
 	client := resty.New()
 	_, err = client.R().
 		SetHeader("Content-type", "application/json").
