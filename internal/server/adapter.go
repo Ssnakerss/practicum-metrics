@@ -28,7 +28,8 @@ func InitAdapter(ctx context.Context, c *app.ServerConfig) (*dtadapter.Adapter, 
 		}
 
 		//Очищаем таблицу
-		st.Truncate()
+		// st.Truncate()
+
 		logger.SLog.Info("using db as storage")
 	} else {
 		//Иначе используем хранение в памяти

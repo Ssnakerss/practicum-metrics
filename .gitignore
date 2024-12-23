@@ -23,3 +23,6 @@ vendor/
 # IDEs directories
 .idea
 .vscode
+cmd/server/data.db
+run_tests.cmd
+cmd/server/data.db

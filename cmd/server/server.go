@@ -22,7 +22,6 @@ func PrintAppInfo() {
 	fmt.Println("Build version: ", buildVersion)
 	fmt.Println("Build date: ", buildDate)
 	fmt.Println("Build commit: ", buildCommit)
-
 }
 
 func main() {
@@ -36,7 +35,7 @@ func main() {
 	}
 	defer logger.Log.Sync()
 
-	//Cpature app panics if any.
+	//Capture app panics if any.
 	defer func() {
 		if err := recover(); err != nil {
 			logger.SLog.Fatalf(
@@ -55,7 +54,7 @@ func main() {
 		logger.SLog.Fatalf("cannot create server: %v", err)
 	}
 	//start  Listening for SysCal events
-	go app.SysCallProcess(ctx, cancel) //, s.A.DoSync, s.A.Ds.Close)
+	go app.SysCallProcess(ctx, cancel)
 
 	//Starting server
 	s.Run(ctx)

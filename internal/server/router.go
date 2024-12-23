@@ -26,14 +26,15 @@ func NewRouter(da *dtadapter.Adapter, c *app.ServerConfig) *chi.Mux {
 	h := hash.New(c.Key)
 	r.Use(h.Handle)
 
-	e := encrypt.Coder{}
-	err := e.LoadPrivateKey(c.CryptoKey)
-	if err == nil {
-		r.Use(e.Handle)
-		logger.SLog.Info("Private key loaded", e)
-
-	} else {
-		logger.SLog.Error("Can't load private key", "error", err)
+	if c.CryptoKey != "" {
+		e := encrypt.Coder{}
+		err := e.LoadPrivateKey(c.CryptoKey)
+		if err == nil {
+			r.Use(e.Handle)
+			logger.SLog.Info("Private key loaded", e)
+		} else {
+			logger.SLog.Warn("Can't load private key: ", "error", err)
+		}
 	}
 
 	//Добваляем обработчики для pprof

@@ -23,19 +23,25 @@ type Agent struct {
 	c *app.AgentConfig
 	l *zap.SugaredLogger
 	s sharedSlice
-	e encrypt.Coder //Кодировка
+	e *encrypt.Coder //Кодировка
 
 }
 
 func New(l *zap.SugaredLogger) (*Agent, error) {
 	c := app.MakeAgentConfig()
 	e := encrypt.Coder{}
-	e.LoadPublicKey(c.CryptoKey)
+	if err := e.LoadPublicKey(c.CryptoKey); err != nil {
+		return &Agent{
+			c: c,
+			l: l,
+			e: nil,
+		}, nil
+	}
 
 	return &Agent{
 		c: c,
 		l: l,
-		e: e,
+		e: &e,
 	}, nil
 }
 

@@ -33,6 +33,9 @@ func SysCallProcess(ctx context.Context,
 	cancel context.CancelFunc,
 	ff ...func(),
 ) {
+
+	defer cancel()
+
 	exit := make(chan os.Signal, 1)
 	signal.Notify(exit,
 		syscall.SIGINT,
@@ -43,13 +46,14 @@ func SysCallProcess(ctx context.Context,
 	select {
 	case s := <-exit:
 		logger.SLog.Info("received signal: ", "syscal", s.Signal)
-		logger.Log.Info("shutting down")
-		cancel()
 	case <-ctx.Done():
-		logger.Log.Info("shutting down")
 	}
-	logger.SLog.Info("performing pre-shutdown tasks")
-	for _, f := range ff {
-		f()
+
+	logger.Log.Info("shutting down")
+	if len(ff) > 0 {
+		logger.SLog.Info("performing pre-shutdown tasks")
+		for _, f := range ff {
+			f()
+		}
 	}
 }

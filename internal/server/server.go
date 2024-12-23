@@ -50,10 +50,11 @@ func (s *Server) Run(ctx context.Context) {
 		return s.s.Shutdown(context.Background()) //Завершаем сервер
 	})
 
-	if err := g.Wait(); err != nil {
-		s.l.Info("performing pre-shutdown tasks")
-		s.A.DoSync()
-		s.A.Ds.Close()
-		s.l.Warnw("server stopped", "error", err)
-	}
+	g.Wait()
+
+	//Saving state to sync storage
+	s.A.DoSync()
+	s.A.Ds.Close()
+
+	s.l.Warn("server stopped")
 }
