@@ -109,10 +109,10 @@ func MakeServerConfig() *ServerConfig {
 
 	//If jsonfile path is not empty is set - load params from json file as default values
 	if cfgFilePath != "" {
-		cJson := serverJSONConfig{}
-		err := loadJSONConfig(cfgFilePath, &cJson)
+		cJSON := serverJSONConfig{}
+		err := loadJSONConfig(cfgFilePath, &cJSON)
 		if err == nil {
-			parseServerConfig(&cJson, &s)
+			parseServerConfig(&cJSON, &s)
 		}
 	}
 	fmt.Println(s)
