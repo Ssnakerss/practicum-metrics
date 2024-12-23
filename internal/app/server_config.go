@@ -9,7 +9,7 @@ import (
 	"github.com/caarlos0/env/v6"
 )
 
-type serverJsonConfig struct {
+type serverJSONConfig struct {
 	Address   string `json:"address"`
 	CryptoKey string `json:"crypto_key"`
 
@@ -19,7 +19,7 @@ type serverJsonConfig struct {
 	DatabaseDSN   string `json:"database_dsn"`
 }
 
-func parseServerConfig(sjcfg *serverJsonConfig, scfg *ServerConfig) {
+func parseServerConfig(sjcfg *serverJSONConfig, scfg *ServerConfig) {
 	scfg.Address = sjcfg.Address
 	scfg.CryptoKey = sjcfg.CryptoKey
 	scfg.Restore = sjcfg.Restore
@@ -109,8 +109,8 @@ func MakeServerConfig() *ServerConfig {
 
 	//If jsonfile path is not empty is set - load params from json file as default values
 	if cfgFilePath != "" {
-		cJson := serverJsonConfig{}
-		err := loadJsonConfig(cfgFilePath, &cJson)
+		cJson := serverJSONConfig{}
+		err := loadJSONConfig(cfgFilePath, &cJson)
 		if err == nil {
 			parseServerConfig(&cJson, &s)
 		}

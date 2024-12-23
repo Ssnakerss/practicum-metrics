@@ -15,7 +15,7 @@ import (
 // Ингтервалы для повторений при ошибках соединения и ввода-вывода
 var RetryIntervals = []time.Duration{0, 1, 3, 5}
 
-func loadJsonConfig(path string, cfg any) error {
+func loadJSONConfig(path string, cfg any) error {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		return err

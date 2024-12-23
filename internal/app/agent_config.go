@@ -8,7 +8,7 @@ import (
 	"github.com/caarlos0/env/v6"
 )
 
-type agentJsonConfig struct {
+type agentJSONConfig struct {
 	Address   string `json:"address"`
 	CryptoKey string `json:"crypto_key"`
 
@@ -16,7 +16,7 @@ type agentJsonConfig struct {
 	PollInterval   string `json:"poll_interval"`
 }
 
-func parseAgentConfig(ajcfg *agentJsonConfig, acfg *AgentConfig) {
+func parseAgentConfig(ajcfg *agentJSONConfig, acfg *AgentConfig) {
 	acfg.Address = ajcfg.Address
 	acfg.CryptoKey = ajcfg.CryptoKey
 
@@ -100,10 +100,10 @@ func MakeAgentConfig() *AgentConfig {
 
 	//If jsonfile path is not empty is set - load params from json file as default values
 	if cfgFilePath != "" {
-		cJson := agentJsonConfig{}
-		err := loadJsonConfig(cfgFilePath, &cJson)
+		cJSON := agentJSONConfig{}
+		err := loadJSONConfig(cfgFilePath, &cJSON)
 		if err == nil {
-			parseAgentConfig(&cJson, &a)
+			parseAgentConfig(&cJSON, &a)
 		}
 	}
 	//Reading params from command line and environment after setting default values
