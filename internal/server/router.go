@@ -3,8 +3,10 @@ package server
 import (
 	"net/http"
 
+	"github.com/Ssnakerss/practicum-metrics/internal/app"
 	"github.com/Ssnakerss/practicum-metrics/internal/compression"
 	"github.com/Ssnakerss/practicum-metrics/internal/dtadapter"
+	"github.com/Ssnakerss/practicum-metrics/internal/encrypt"
 	"github.com/Ssnakerss/practicum-metrics/internal/hash"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/go-chi/chi/v5"
@@ -13,14 +15,27 @@ import (
 	_ "net/http/pprof"
 )
 
-func NewRouter(da *dtadapter.Adapter) *chi.Mux {
+func NewRouter(da *dtadapter.Adapter, c *app.ServerConfig) *chi.Mux {
 
 	//Configuring CHI
 	r := chi.NewRouter()
 
 	r.Use(logger.WithLogging)
 	r.Use(compression.GzipHandle)
-	r.Use(hash.HashHandle)
+
+	h := hash.New(c.Key)
+	r.Use(h.Handle)
+
+	if c.CryptoKey != "" {
+		e := encrypt.Coder{}
+		err := e.LoadPrivateKey(c.CryptoKey)
+		if err == nil {
+			r.Use(e.Handle)
+			logger.SLog.Info("Private key loaded", e)
+		} else {
+			logger.SLog.Warn("Can't load private key: ", "error", err)
+		}
+	}
 
 	//Добваляем обработчики для pprof
 	r.Mount("/debug", middleware.Profiler())

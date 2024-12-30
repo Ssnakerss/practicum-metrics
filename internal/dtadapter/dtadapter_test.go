@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/Ssnakerss/practicum-metrics/internal/app"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
 	"github.com/Ssnakerss/practicum-metrics/internal/storage"
@@ -103,7 +104,7 @@ func TestSetGetDataTextHandler(t *testing.T) {
 	}
 
 	da := Adapter{}
-	da.New(memst)
+	da.New(memst, app.RetryIntervals)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -137,7 +138,7 @@ func TestSetDataJSONHandler(t *testing.T) {
 	da := Adapter{}
 	memst := &storage.MemStorage{}
 	memst.New(context.TODO())
-	da.New(memst)
+	da.New(memst, app.RetryIntervals)
 
 	handler := http.HandlerFunc(da.SetDataJSONHandler)
 	srv := httptest.NewServer(handler)
@@ -169,6 +170,11 @@ func TestSetDataJSONHandler(t *testing.T) {
 }
 
 func Test_execRWAllWtihRetry(t *testing.T) {
+	da := Adapter{}
+	memst := &storage.MemStorage{}
+	memst.New(context.TODO())
+	da.New(memst, app.RetryIntervals)
+
 	tests := []struct {
 		name string
 		f    func(*[]metric.Metric) (int, error)
@@ -184,7 +190,7 @@ func Test_execRWAllWtihRetry(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, got := execRWAllWtihRetry(tt.f)(nil)
+			_, got := da.execRWAllWtihRetry(tt.f)(nil)
 			if !errors.Is(got, tt.want) {
 				t.Errorf("execRWAllWtihRetry() = %f, want %f", got, tt.want)
 			}

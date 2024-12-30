@@ -1,0 +1,8 @@
+{
+    "address": "localhost:8888", 
+    "restore": true, 
+    "store_interval": "1s", 
+    "store_file": "data.db", 
+    "database_dsn": "", 
+    "crypto_key": "private_key.pem" 
+}
