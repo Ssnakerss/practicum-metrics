@@ -9,10 +9,11 @@ import (
 
 	"github.com/Ssnakerss/practicum-metrics/internal/app"
 	"github.com/Ssnakerss/practicum-metrics/internal/compression"
-
 	"github.com/Ssnakerss/practicum-metrics/internal/hash"
+
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
+	"github.com/Ssnakerss/practicum-metrics/internal/subnetchecker"
 	"github.com/go-resty/resty/v2"
 )
 
@@ -142,12 +143,19 @@ func (a *Agent) httpSend(body []byte) error {
 		return err
 	}
 
+	hostAddress, err := subnetchecker.GetLocalIP()
+	if err != nil {
+		logger.SLog.Errorf("agent http send", "fail to get host ip address ", err)
+		return err
+	}
+
 	url := "http://" + a.c.Address + "/updates/"
 	client := resty.New()
 	_, err = client.R().
 		SetHeader("Content-type", "application/json").
 		SetHeader("Content-Encoding", "gzip").
 		SetHeader("HashSHA256", hash).
+		SetHeader("X-Real-IP", hostAddress).
 		// SetHeader("Accept-Encoding", "gzip").
 		SetBody(bgzip).
 		Post(url)

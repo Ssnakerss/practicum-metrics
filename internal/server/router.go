@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/Ssnakerss/practicum-metrics/internal/app"
@@ -9,6 +10,7 @@ import (
 	"github.com/Ssnakerss/practicum-metrics/internal/encrypt"
 	"github.com/Ssnakerss/practicum-metrics/internal/hash"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
+	"github.com/Ssnakerss/practicum-metrics/internal/subnetchecker"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
@@ -26,6 +28,15 @@ func NewRouter(da *dtadapter.Adapter, c *app.ServerConfig) *chi.Mux {
 	h := hash.New(c.Key)
 	r.Use(h.Handle)
 
+	//add checking for trusted subnet if param is not empty
+	if c.TrustedSubnet != "" {
+		s, err := subnetchecker.NewSubNetChecker(c.TrustedSubnet)
+		if err != nil {
+			log.Fatal("trusted subnet parameter error: ", err)
+		}
+		r.Use(s.Middleware)
+	}
+	//add crypto if param is not empty
 	if c.CryptoKey != "" {
 		e := encrypt.Coder{}
 		err := e.LoadPrivateKey(c.CryptoKey)

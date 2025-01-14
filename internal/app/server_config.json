@@ -4,5 +4,6 @@
     "store_interval": "1s", 
     "store_file": "data.db", 
     "database_dsn": "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable", 
-    "crypto_key": "private_key.pem" 
+    "crypto_key": "private_key.pem" ,
+    "trusted_subnet":""
 }

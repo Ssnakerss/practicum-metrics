@@ -10,8 +10,9 @@ import (
 )
 
 type serverJSONConfig struct {
-	Address   string `json:"address"`
-	CryptoKey string `json:"crypto_key"`
+	Address       string `json:"address"`
+	CryptoKey     string `json:"crypto_key"`
+	TrustedSubnet string `json:"trusted_subnet"`
 
 	Restore       bool   `json:"restore"`
 	StoreInterval string `json:"store_interval"`
@@ -58,6 +59,9 @@ type ServerConfig struct {
 	CFile      string `env:"CONFIG"`
 	ConfigFile string `env:"CONFIG"`
 
+	//-t trusted subnet - адрес доверенной сети для приема данных от агента
+	TrustedSubnet string `env:"TRUSTED_SUBNET"`
+
 	// -e=<ЗНАЧЕНИЕ> отвечает за среду DEV или PROD
 	Env string `env:"ENV"`
 }
@@ -75,8 +79,10 @@ func (c *ServerConfig) read() error {
 	flag.StringVar(&c.CryptoKey, "crypto-key", c.CryptoKey, "rsa key file path")
 	flag.StringVar(&c.Env, "e", c.Env, "environment")
 
-	flag.StringVar(&c.CFile, "c", "", "conifg file path")
-	flag.StringVar(&c.ConfigFile, "config", "", "conifg file path")
+	flag.StringVar(&c.TrustedSubnet, "t", c.TrustedSubnet, "trusted subnet")
+
+	flag.StringVar(&c.CFile, "c", "", "config file path")
+	flag.StringVar(&c.ConfigFile, "config", "", "config file path")
 
 	flag.Parse()
 
@@ -94,6 +100,7 @@ func MakeServerConfig() *ServerConfig {
 		Address:       "localhost:8080",
 		Key:           "",
 		CryptoKey:     "",
+		TrustedSubnet: "",
 		Env:           "PROD",
 	}
 	//First check for json file path parameter
