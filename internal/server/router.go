@@ -17,16 +17,15 @@ import (
 	_ "net/http/pprof"
 )
 
-func NewRouter(da *dtadapter.Adapter, c *app.ServerConfig) *chi.Mux {
+func NewRouter(da *dtadapter.Adapter,
+	c *app.ServerConfig,
+	e *encrypt.Coder,
+) *chi.Mux {
 
 	//Configuring CHI
 	r := chi.NewRouter()
 
 	r.Use(logger.WithLogging)
-	r.Use(compression.GzipHandle)
-
-	h := hash.New(c.Key)
-	r.Use(h.Handle)
 
 	//add checking for trusted subnet if param is not empty
 	if c.TrustedSubnet != "" {
@@ -36,17 +35,17 @@ func NewRouter(da *dtadapter.Adapter, c *app.ServerConfig) *chi.Mux {
 		}
 		r.Use(s.Middleware)
 	}
+
+	h := hash.New(c.Key)
+	r.Use(h.Handle)
+
 	//add crypto if param is not empty
-	if c.CryptoKey != "" {
-		e := encrypt.Coder{}
-		err := e.LoadPrivateKey(c.CryptoKey)
-		if err == nil {
-			r.Use(e.Handle)
-			logger.SLog.Info("Private key loaded", e)
-		} else {
-			logger.SLog.Warn("Can't load private key: ", "error", err)
-		}
+
+	if e != nil {
+		r.Use(e.Handle)
 	}
+
+	r.Use(compression.GzipHandle)
 
 	//Добваляем обработчики для pprof
 	r.Mount("/debug", middleware.Profiler())

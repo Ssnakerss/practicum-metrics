@@ -12,6 +12,8 @@ type agentJSONConfig struct {
 	Address   string `json:"address"`
 	CryptoKey string `json:"crypto_key"`
 
+	GrpcAddress string `json:"grpc_address"`
+
 	ReportInterval string `json:"report_interval"`
 	PollInterval   string `json:"poll_interval"`
 }
@@ -46,6 +48,9 @@ type AgentConfig struct {
 	// -crypto-key Путь дофайла с Ключом для шифрования
 	CryptoKey string `env:"CRYPTO_KEY"`
 
+	//-g address:port of grpc server to send data to
+	GrpcAddress string `env:"GRPC_ADDRESS"`
+
 	// -c / -config Путь до файла с конфигом
 	CFile      string `env:"CONFIG"`
 	ConfigFile string `env:"CONFIG"`
@@ -66,6 +71,8 @@ func (c *AgentConfig) read() error {
 	flag.StringVar(&c.CryptoKey, "crypto-key", c.CryptoKey, "rsa key file path")
 	flag.StringVar(&c.Env, "e", c.Env, "environment")
 
+	flag.StringVar(&c.GrpcAddress, "g", c.GrpcAddress, "grpc server address")
+
 	flag.StringVar(&c.CFile, "c", "", "conifg file path")
 	flag.StringVar(&c.ConfigFile, "config", "", "conifg file path")
 
@@ -84,7 +91,10 @@ func MakeAgentConfig() *AgentConfig {
 		Address:        "localhost:8080",
 		Key:            "",
 		CryptoKey:      "",
-		Env:            "DEV",
+
+		GrpcAddress: "",
+
+		Env: "DEV",
 	}
 	//First check for json file path parameter
 	cfgFilePath := ""

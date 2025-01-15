@@ -14,6 +14,8 @@ type serverJSONConfig struct {
 	CryptoKey     string `json:"crypto_key"`
 	TrustedSubnet string `json:"trusted_subnet"`
 
+	GrpcAddress string `json:"grpc_address"`
+
 	Restore       bool   `json:"restore"`
 	StoreInterval string `json:"store_interval"`
 	StoreFile     string `json:"store_file"`
@@ -62,6 +64,9 @@ type ServerConfig struct {
 	//-t trusted subnet - адрес доверенной сети для приема данных от агента
 	TrustedSubnet string `env:"TRUSTED_SUBNET"`
 
+	//-g addree:port of grpc server to receive incoming connectiob
+	GrpcAddress string `env:"GRPC_ADDRESS"`
+
 	// -e=<ЗНАЧЕНИЕ> отвечает за среду DEV или PROD
 	Env string `env:"ENV"`
 }
@@ -80,6 +85,8 @@ func (c *ServerConfig) read() error {
 	flag.StringVar(&c.Env, "e", c.Env, "environment")
 
 	flag.StringVar(&c.TrustedSubnet, "t", c.TrustedSubnet, "trusted subnet")
+
+	flag.StringVar(&c.GrpcAddress, "g", c.GrpcAddress, "grpc server address")
 
 	flag.StringVar(&c.CFile, "c", "", "config file path")
 	flag.StringVar(&c.ConfigFile, "config", "", "config file path")
@@ -101,6 +108,7 @@ func MakeServerConfig() *ServerConfig {
 		Key:           "",
 		CryptoKey:     "",
 		TrustedSubnet: "",
+		GrpcAddress:   "",
 		Env:           "PROD",
 	}
 	//First check for json file path parameter

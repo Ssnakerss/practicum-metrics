@@ -1,0 +1,23 @@
+syntax="proto3";
+
+package grpcmetric;
+
+option go_package = "practicum-metrics/proto";
+
+//JSONSaveRequest -  metric model to save via grpc
+
+message JSONSaveRequest {
+    bytes JSONMetrics = 1;
+    string Hash = 2;
+
+}
+
+message JSONSaveResponse {
+    string Error = 1;
+    string Message = 2;
+}
+
+service Metrics{
+    rpc SaveJSONMetrics(JSONSaveRequest) returns (JSONSaveResponse);
+}
+
