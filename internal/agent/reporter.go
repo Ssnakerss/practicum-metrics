@@ -123,7 +123,7 @@ func (a *Agent) ReportMetrics(mm []metric.Metric) error {
 			return err
 		}
 
-		//сначала кодируем если заданы ключи.
+		//кодируем если заданы ключи.
 		if a.e != nil {
 			b, err := a.e.Encrypt(body)
 			if err == nil {
@@ -132,6 +132,7 @@ func (a *Agent) ReportMetrics(mm []metric.Metric) error {
 				a.l.Warnf("error encrypt body: %s", err.Error())
 			}
 		}
+
 		// посчитаем подпись если задан ключ
 		hash, err := hash.MakeSHA256(body, a.c.Key)
 		if err != nil {
@@ -172,7 +173,7 @@ func (a *Agent) httpSend(body []byte, hash string) error {
 
 // send prepared metrics to server via gRPC
 func (a *Agent) grpcSend(body []byte, hash string) error {
-	conn, err := grpc.Dial(a.c.GrpcAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(a.c.GrpcAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return err
 	}
