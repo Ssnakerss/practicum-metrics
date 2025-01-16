@@ -61,8 +61,9 @@ func (s *Server) SaveJSONMetrics(ctx context.Context, in *proto.JSONSaveRequest)
 
 	//unzipping
 	body, err = compression.Decompress(body)
+	s.L.With(zap.String("who", "grpc savejsonmetrics"))
 	if err != nil {
-		s.L.Warnw("grpc savejsonmetrics", "cannot unzip message body", err)
+		s.L.Warnw("cannot unzip message body", "error", err)
 		response.Error = fmt.Sprintf("metrics unzip error : %s", err.Error())
 		return &response, err
 	}
@@ -70,7 +71,7 @@ func (s *Server) SaveJSONMetrics(ctx context.Context, in *proto.JSONSaveRequest)
 	//unmarshal
 	//tyrying to convert json to []metric
 	if err := json.Unmarshal(body, &mcsj); err != nil {
-		s.L.Warnw("grpc savejsonmetrics", "cannot convert json to []metric", err)
+		s.L.Warnw("cannot convert json to []metric", "error", err)
 		response.Error = fmt.Sprintf("metrics convertion error : %s", err)
 		return &response, err
 	}
@@ -83,12 +84,12 @@ func (s *Server) SaveJSONMetrics(ctx context.Context, in *proto.JSONSaveRequest)
 	// //Записываем получившийся массив в хранилище
 	err = s.Da.WriteAll(&mcs)
 	if err != nil {
-		s.L.Warnw("grpc savejsonmetrics", "data save error", err)
+		s.L.Warnw("data save", "error", err)
 		response.Error = fmt.Sprintf("error saving to storage : %s", err)
 		return &response, err
 	}
 
-	s.L.Infow("grpc savejsonmetrics", "saved items", len(mcs))
+	s.L.Infow("saved success", "items count", len(mcs))
 	response.Message = fmt.Sprintf("saved %d items", len(mcs))
 	return &response, nil
 }

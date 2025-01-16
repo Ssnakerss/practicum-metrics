@@ -130,10 +130,13 @@ func MakeServerConfig() *ServerConfig {
 			parseServerConfig(&cJSON, &s)
 		}
 	}
-	fmt.Println(s)
+	fmt.Println("1: ", s)
+
 	//Reading params from command line and environment after setting default values
-	flag.Parse()
-	env.Parse(s)
+	// flag.Parse()
+	fmt.Println("2: ", s)
+	// env.Parse(s)
+	fmt.Println("3: ", s)
 
 	return &s
 }

@@ -90,7 +90,7 @@ func (s *Server) Run(ctx context.Context) {
 		<-gCtx.Done() //Ожидаем завершения контекста
 		s.l.Info("shutting server down")
 		//stopping grpc server
-		s.g.Stop()
+		s.g.GracefulStop()
 		return s.s.Shutdown(context.Background()) //Завершаем сервер
 	})
 
