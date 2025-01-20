@@ -10,8 +10,11 @@ import (
 )
 
 type serverJSONConfig struct {
-	Address   string `json:"address"`
-	CryptoKey string `json:"crypto_key"`
+	Address       string `json:"address"`
+	CryptoKey     string `json:"crypto_key"`
+	TrustedSubnet string `json:"trusted_subnet"`
+
+	GrpcAddress string `json:"grpc_address"`
 
 	Restore       bool   `json:"restore"`
 	StoreInterval string `json:"store_interval"`
@@ -58,6 +61,12 @@ type ServerConfig struct {
 	CFile      string `env:"CONFIG"`
 	ConfigFile string `env:"CONFIG"`
 
+	//-t trusted subnet - адрес доверенной сети для приема данных от агента
+	TrustedSubnet string `env:"TRUSTED_SUBNET"`
+
+	//-g addree:port of grpc server to receive incoming connectiob
+	GrpcAddress string `env:"GRPC_ADDRESS"`
+
 	// -e=<ЗНАЧЕНИЕ> отвечает за среду DEV или PROD
 	Env string `env:"ENV"`
 }
@@ -75,8 +84,12 @@ func (c *ServerConfig) read() error {
 	flag.StringVar(&c.CryptoKey, "crypto-key", c.CryptoKey, "rsa key file path")
 	flag.StringVar(&c.Env, "e", c.Env, "environment")
 
-	flag.StringVar(&c.CFile, "c", "", "conifg file path")
-	flag.StringVar(&c.ConfigFile, "config", "", "conifg file path")
+	flag.StringVar(&c.TrustedSubnet, "t", c.TrustedSubnet, "trusted subnet")
+
+	flag.StringVar(&c.GrpcAddress, "g", c.GrpcAddress, "grpc server address")
+
+	flag.StringVar(&c.CFile, "c", "", "config file path")
+	flag.StringVar(&c.ConfigFile, "config", "", "config file path")
 
 	flag.Parse()
 
@@ -94,6 +107,8 @@ func MakeServerConfig() *ServerConfig {
 		Address:       "localhost:8080",
 		Key:           "",
 		CryptoKey:     "",
+		TrustedSubnet: "",
+		GrpcAddress:   "",
 		Env:           "PROD",
 	}
 	//First check for json file path parameter
@@ -115,10 +130,13 @@ func MakeServerConfig() *ServerConfig {
 			parseServerConfig(&cJSON, &s)
 		}
 	}
-	fmt.Println(s)
+	fmt.Println("1: ", s)
+
 	//Reading params from command line and environment after setting default values
-	flag.Parse()
-	env.Parse(s)
+	// flag.Parse()
+	fmt.Println("2: ", s)
+	// env.Parse(s)
+	fmt.Println("3: ", s)
 
 	return &s
 }

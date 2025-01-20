@@ -9,10 +9,14 @@ import (
 
 	"github.com/Ssnakerss/practicum-metrics/internal/app"
 	"github.com/Ssnakerss/practicum-metrics/internal/compression"
-
 	"github.com/Ssnakerss/practicum-metrics/internal/hash"
+	"github.com/Ssnakerss/practicum-metrics/proto"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
+
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
 	"github.com/Ssnakerss/practicum-metrics/internal/metric"
+	"github.com/Ssnakerss/practicum-metrics/internal/subnetchecker"
 	"github.com/go-resty/resty/v2"
 )
 
@@ -109,36 +113,48 @@ func (a *Agent) ReportMetrics(mm []metric.Metric) error {
 		if err != nil {
 			return fmt.Errorf("error marshal []metricJSON %v", mcsj)
 		}
-		return a.httpSend(body)
+
+		//message preparation
+		//zip -> encode -> hash calculation
+
+		//Сжимаем боди гзипом
+		body, err = compression.Compress(body)
+		if err != nil {
+			return err
+		}
+
+		//кодируем если заданы ключи.
+		if a.e != nil {
+			b, err := a.e.Encrypt(body)
+			if err == nil {
+				body = b
+			} else {
+				a.l.Warnf("error encrypt body: %s", err.Error())
+			}
+		}
+
+		// посчитаем подпись если задан ключ
+		hash, err := hash.MakeSHA256(body, a.c.Key)
+		if err != nil {
+			return err
+		}
+
+		//message send
+		if a.c.GrpcAddress != "" {
+			return a.grpcSend(body, hash)
+		} else {
+			return a.httpSend(body, hash)
+		}
 	}
 	return nil
 }
 
-// отправляет метрики по http серверу
-// сначала кодируем если заданы ключи.
-// потом считаем подпись если задан ключ
-// потом сжимаем боди гзипом
-// потом отправляем
-func (a *Agent) httpSend(body []byte) error {
-	//сначала кодируем если заданы ключи.
-	if a.e != nil {
-		b, err := a.e.Encrypt(body)
-		if err == nil {
-			body = b
-		} else {
-			a.l.Warnf("error encrypt body: %s", err.Error())
-		}
-	}
+// send prepared metrics to server via http
+func (a *Agent) httpSend(body []byte, hash string) error {
 
-	// посчитаем подпись если задан ключ
-	hash, err := hash.MakeSHA256(body, a.c.Key)
+	hostAddress, err := subnetchecker.GetLocalIP()
 	if err != nil {
-		return err
-	}
-
-	//Сжимаем боди гзипом
-	bgzip, err := compression.Compress(body)
-	if err != nil {
+		logger.SLog.Errorf("agent http send", "fail to get host ip address ", err)
 		return err
 	}
 
@@ -148,9 +164,31 @@ func (a *Agent) httpSend(body []byte) error {
 		SetHeader("Content-type", "application/json").
 		SetHeader("Content-Encoding", "gzip").
 		SetHeader("HashSHA256", hash).
-		// SetHeader("Accept-Encoding", "gzip").
-		SetBody(bgzip).
+		SetHeader("X-Real-IP", hostAddress).
+		SetBody(body).
 		Post(url)
 
 	return err
+}
+
+// send prepared metrics to server via gRPC
+func (a *Agent) grpcSend(body []byte, hash string) error {
+	conn, err := grpc.NewClient(a.c.GrpcAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	c := proto.NewMetricsClient(conn)
+
+	resp, err := c.SaveJSONMetrics(context.Background(), &proto.JSONSaveRequest{
+		JSONMetrics: body,
+		Hash:        hash,
+	})
+
+	if err != nil {
+		return err
+	}
+	a.l.Infow("agent grpc send", "resp", resp)
+	return nil
 }

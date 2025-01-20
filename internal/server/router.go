@@ -1,6 +1,7 @@
 package server
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/Ssnakerss/practicum-metrics/internal/app"
@@ -9,33 +10,42 @@ import (
 	"github.com/Ssnakerss/practicum-metrics/internal/encrypt"
 	"github.com/Ssnakerss/practicum-metrics/internal/hash"
 	"github.com/Ssnakerss/practicum-metrics/internal/logger"
+	"github.com/Ssnakerss/practicum-metrics/internal/subnetchecker"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 
 	_ "net/http/pprof"
 )
 
-func NewRouter(da *dtadapter.Adapter, c *app.ServerConfig) *chi.Mux {
+func NewRouter(da *dtadapter.Adapter,
+	c *app.ServerConfig,
+	e *encrypt.Coder,
+) *chi.Mux {
 
 	//Configuring CHI
 	r := chi.NewRouter()
 
 	r.Use(logger.WithLogging)
-	r.Use(compression.GzipHandle)
+
+	//add checking for trusted subnet if param is not empty
+	if c.TrustedSubnet != "" {
+		s, err := subnetchecker.NewSubNetChecker(c.TrustedSubnet)
+		if err != nil {
+			log.Fatal("trusted subnet parameter error: ", err)
+		}
+		r.Use(s.Middleware)
+	}
 
 	h := hash.New(c.Key)
 	r.Use(h.Handle)
 
-	if c.CryptoKey != "" {
-		e := encrypt.Coder{}
-		err := e.LoadPrivateKey(c.CryptoKey)
-		if err == nil {
-			r.Use(e.Handle)
-			logger.SLog.Info("Private key loaded", e)
-		} else {
-			logger.SLog.Warn("Can't load private key: ", "error", err)
-		}
+	//add crypto if param is not empty
+
+	if e != nil {
+		r.Use(e.Handle)
 	}
+
+	r.Use(compression.GzipHandle)
 
 	//Добваляем обработчики для pprof
 	r.Mount("/debug", middleware.Profiler())
